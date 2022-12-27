@@ -24,7 +24,9 @@ SceneApp::SceneApp(gef::Platform& platform) :
 	sprite_renderer_(NULL),
 	input_manager_(NULL),
 	font_(NULL),
-	animation_manager_(platform)
+	animation_manager_(platform),
+	editor_opened_(true),
+	editor_("Editor")
 {
 }
 
@@ -65,10 +67,13 @@ void SceneApp::Init()
 	gui_animation_translations_.resize(size3d);
 	gui_animation_rotations_.resize(size3d);
 	gui_animation_scales_.resize(size3d, ImVec4(1.f, 1.f, 1.f, 0.f));
+	editor_.OnStart();
 }
 
 void SceneApp::CleanUp()
 {
+	editor_.OnStop();
+
 	delete input_manager_;
 	input_manager_ = NULL;
 
@@ -304,6 +309,17 @@ void SceneApp::DrawHUD()
 		ImGui::EndTabBar();
 	}
 	ImGui::End();
+
+	if (editor_opened_)
+	{
+		if (ImGui::Begin("Content", &editor_opened_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus))
+		{
+			//Application_Frame();
+			editor_.OnFrame(NULL);
+
+		}
+		ImGui::End();
+	}
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

@@ -16,6 +16,18 @@
     <Filter Include="Header Files\imgui">
       <UniqueIdentifier>{184eda01-500e-4aa9-879c-1b6c74b66eb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\imgui\node-editor">
+      <UniqueIdentifier>{09bbe55d-d953-4dac-9255-595926cfd607}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imgui\node-editor\external">
+      <UniqueIdentifier>{68450793-f3d5-4b2b-862f-fc3912f9f6c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imgui\node-editor\external\stb_image">
+      <UniqueIdentifier>{94e0529f-58a4-4270-b0d7-136a80f4d66c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\imgui\node-editor\utilities">
+      <UniqueIdentifier>{5777212e-569c-49fa-ac4f-106464fe7a0f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\main_d3d11.cpp">
@@ -65,6 +77,45 @@
     </ClCompile>
     <ClCompile Include="..\..\motion_clip_player.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\application.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\crude_json.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\entry_point.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_canvas.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_node_editor.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_node_editor_api.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\platform_glfw.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\platform_win32.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\renderer_dx11.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\renderer_ogl3.cpp">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\builders.cpp">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\drawing.cpp">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\widgets.cpp">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -122,5 +173,67 @@
     <ClInclude Include="..\..\motion_clip_player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\application.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\crude_json.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_bezier_math.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_canvas.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_extra_keys.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_extra_math.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_node_editor.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_node_editor_internal.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\platform.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\renderer.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\setup.h">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\external\stb_image\stb_image.h">
+      <Filter>Header Files\imgui\node-editor\external\stb_image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\builders.h">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\drawing.h">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\widgets.h">
+      <Filter>Header Files\imgui\node-editor\utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\BasicInteraction.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\imgui\node-editor\config.h.in">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </None>
+    <None Include="..\..\..\imgui\node-editor\imgui_bezier_math.inl">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </None>
+    <None Include="..\..\..\imgui\node-editor\imgui_extra_math.inl">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </None>
+    <None Include="..\..\..\imgui\node-editor\imgui_node_editor_internal.inl">
+      <Filter>Header Files\imgui\node-editor</Filter>
+    </None>
   </ItemGroup>
 </Project>

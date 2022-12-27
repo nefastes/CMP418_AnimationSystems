@@ -11,6 +11,7 @@
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx11.h"
 #include "../imgui/imgui_impl_win32.h"
+#include "BasicInteraction.h"
 
 #include "motion_clip_player.h"
 #include "AnimationManager.h"
@@ -45,20 +46,18 @@ private:
 
 	float fps_;
 
-	void FrontendInit();
-	void FrontendRelease();
-	void FrontendUpdate(float frame_time);
-	void FrontendRender();
-
-
 	// Animation manager and UI variables
 	AsdfAnim::AnimationManager animation_manager_;
+
+	// User Interface
 	std::vector<size_t> gui_selected_subanimation_;
 	std::vector<float> gui_animation_transition_time_;
 	std::vector<AsdfAnim::TransitionType> gui_animation_transition_type_;
 	std::vector<ImVec4> gui_animation_translations_;
 	std::vector<ImVec4> gui_animation_rotations_;
 	std::vector<ImVec4> gui_animation_scales_;
+	bool editor_opened_;
+	BasicInteractionExample editor_;
 };
 
 #endif // _SCENE_APP_H

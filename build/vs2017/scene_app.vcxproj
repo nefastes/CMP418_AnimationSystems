@@ -130,7 +130,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.;..\..;..\..\..\gef_abertay;..\..\..\rapidjson\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\..;..\..\..\gef_abertay;..\..\..\rapidjson\include;..\..\..\imgui</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -171,7 +171,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>.;..\..;..\..\..\gef_abertay;..\..\..\rapidjson\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\..;..\..\..\gef_abertay;..\..\..\rapidjson\include;..\..\..\imgui</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -216,6 +216,19 @@
     <ClCompile Include="..\..\..\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="..\..\..\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\..\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\application.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\crude_json.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\entry_point.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_canvas.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_node_editor.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\imgui_node_editor_api.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\platform_glfw.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\platform_win32.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\renderer_dx11.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\renderer_ogl3.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\builders.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\drawing.cpp" />
+    <ClCompile Include="..\..\..\imgui\node-editor\utilities\widgets.cpp" />
     <ClCompile Include="..\..\AnimatedSprite.cpp" />
     <ClCompile Include="..\..\Animation2D.cpp" />
     <ClCompile Include="..\..\Animation3D.cpp" />
@@ -245,16 +258,38 @@
     <ClInclude Include="..\..\..\imgui\imstb_rectpack.h" />
     <ClInclude Include="..\..\..\imgui\imstb_textedit.h" />
     <ClInclude Include="..\..\..\imgui\imstb_truetype.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\application.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\crude_json.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\external\stb_image\stb_image.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_bezier_math.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_canvas.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_extra_keys.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_extra_math.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_node_editor.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\imgui_node_editor_internal.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\platform.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\renderer.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\setup.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\builders.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\drawing.h" />
+    <ClInclude Include="..\..\..\imgui\node-editor\utilities\widgets.h" />
     <ClInclude Include="..\..\AnimatedSprite.h" />
     <ClInclude Include="..\..\Animation.h" />
     <ClInclude Include="..\..\Animation2D.h" />
     <ClInclude Include="..\..\Animation3D.h" />
     <ClInclude Include="..\..\AnimationManager.h" />
+    <ClInclude Include="..\..\BasicInteraction.h" />
     <ClInclude Include="..\..\BlendNode.h" />
     <ClInclude Include="..\..\gef_json_loader.h" />
     <ClInclude Include="..\..\gef_texture_loader.h" />
     <ClInclude Include="..\..\motion_clip_player.h" />
     <ClInclude Include="..\..\scene_app.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\imgui\node-editor\config.h.in" />
+    <None Include="..\..\..\imgui\node-editor\imgui_bezier_math.inl" />
+    <None Include="..\..\..\imgui\node-editor\imgui_extra_math.inl" />
+    <None Include="..\..\..\imgui\node-editor\imgui_node_editor_internal.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
