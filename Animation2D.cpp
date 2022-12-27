@@ -253,7 +253,6 @@ void AsdfAnim::Animation2D::SelectArmature(uint32_t s)
 {
 	assert(s < m_Skeleton.armature.size());
 	m_CurrentArmature = s;
-	
 	m_CurrentAnimation = m_Skeleton.armature[m_CurrentArmature].animation.begin()->first;
 }
 

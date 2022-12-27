@@ -12,8 +12,14 @@
 #include <Windows.h>
 
 AsdfAnim::Animation3D::Animation3D() : p_Scene(nullptr), p_Mesh(nullptr), p_MeshInstance(nullptr), p_CurrentAnimation(nullptr), m_BlendInfo{},
-m_Activeplayer(&m_AnimationPlayers[0]), m_BodyVelociy(0.f)
+m_Activeplayer(&m_AnimationPlayers[0]), m_BodyVelociy(0.f), m_TestBlendNodeID(UINT32_MAX)
 {
+}
+
+AsdfAnim::Animation3D::~Animation3D()
+{
+    if (p_BlendTree)
+        delete p_BlendTree, p_BlendTree = nullptr;
 }
 
 AsdfAnim::Animation3D* AsdfAnim::Animation3D::CreateFromFolder(gef::Platform& platform, const char* folderpath)
@@ -81,7 +87,7 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         // If the file contains the same name as the scene file and '@', this is a valid animation file and all the information it contains should be loaded
         gef::Scene tempScene;
         tempScene.ReadSceneFromFile(platform, entry.path().string().c_str());
-        for (auto& animIterator : tempScene.animations)
+        for (auto animIterator : tempScene.animations)
         {
             //Determine the type of this clip if possible
             ClipType clipType = ClipType::Clip_Type_Undefined;
@@ -108,68 +114,93 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
     // Initialise the first clip player on the first loaded animation
     p_CurrentAnimation = &v_Clips.front();
     m_AnimationPlayers[0].set_clip(p_CurrentAnimation->clip);
+
+    // Init blend tree
+    p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
+    uint32_t idleNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
+    ClipNode* idleNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(idleNodeID));
+    idleNode->SetClip(p_CurrentAnimation->clip);
+    if (v_Clips.size() > 2)
+    {
+        uint32_t walkNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
+        ClipNode* walkNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(walkNodeID));
+        walkNode->SetClip(v_Clips[2].clip);
+
+        m_TestBlendNodeID = p_BlendTree->AddNode(NodeType_::NodeType_LinearBlend);
+        p_BlendTree->ConnectNodes(idleNodeID, walkNodeID, m_TestBlendNodeID);
+        p_BlendTree->ConnectToRoot(m_TestBlendNodeID);
+    }
+    else p_BlendTree->ConnectToRoot(idleNodeID);
 }
 
 void AsdfAnim::Animation3D::Update(float frameTime)
 {
-    if (m_BlendInfo.blend)
-    {
-        m_BlendInfo.blendClock += frameTime;
-        if (m_BlendInfo.blendClock < m_BlendInfo.blendEndTime)
-        {
-            float interpolationFactor = m_BlendInfo.blendClock / m_BlendInfo.blendEndTime;
-            //float interpolationFactor = (m_BodyVelociy - PHYSICS_WALK_SPEED) / (PHYSICS_RUN_SPEED - PHYSICS_WALK_SPEED);
-            switch (m_BlendInfo.blendType)
-            {
-            case TransitionType::Transition_Type_Smooth:
-                {
-                    //const gef::Animation* prevClip = m_Activeplayer->clip();
-                    //const gef::Animation* newClip = p_CurrentAnimation->clip;
-                    //
-                    //if (p_CurrentAnimation->type == ClipType::Clip_Type_Walk)
-                    //{
-                    //    float walkClipDuration = newClip->duration() / prevClip->duration() - 1.f;
-                    //    float runClipDuration = 1.f - prevClip->duration() / newClip->duration();
-                    //    m_Activeplayer->set_playback_speed(runClipDuration * interpolationFactor);
-                    //    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_playback_speed(walkClipDuration * interpolationFactor);
-                    //}
-                    //else if (p_CurrentAnimation->type == ClipType::Clip_Type_Run)
-                    //{
-                    //    float walkClipDuration = prevClip->duration() / newClip->duration() - 1.f;
-                    //    float runClipDuration = 1.f - newClip->duration() / prevClip->duration();
-                    //    m_Activeplayer->set_playback_speed(walkClipDuration * interpolationFactor);
-                    //    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_playback_speed(runClipDuration * interpolationFactor);
-                    //}
-                }
-                m_Activeplayer->Update(frameTime, p_MeshInstance->bind_pose());
-            case TransitionType::Transition_Type_Frozen:
-                m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].Update(frameTime, p_MeshInstance->bind_pose());
-                {
-                    const gef::SkeletonPose& startPose = m_Activeplayer->pose();
-                    const gef::SkeletonPose& endPose = m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].pose();
-                    m_BlendedPose.Linear2PoseBlend(startPose, endPose, interpolationFactor);
-                }
-                p_MeshInstance->UpdateBoneMatrices(m_BlendedPose);
-                break;
-            default:
-                break;
-            }
-        }
-        else
-        {
-            m_Activeplayer = &m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex];
-            m_BlendInfo.blend = false;
-            m_BlendInfo.blendClock = 0.f;
-            m_Activeplayer->set_playback_speed(1.f);
-            // rest will be overwritten anyways
-        }
-        return;
-    }
+    //if (m_BlendInfo.blend)
+    //{
+    //    m_BlendInfo.blendClock += frameTime;
+    //    if (m_BlendInfo.blendClock < m_BlendInfo.blendEndTime)
+    //    {
+    //        float interpolationFactor = m_BlendInfo.blendClock / m_BlendInfo.blendEndTime;
+    //        //float interpolationFactor = (m_BodyVelociy - PHYSICS_WALK_SPEED) / (PHYSICS_RUN_SPEED - PHYSICS_WALK_SPEED);
+    //        switch (m_BlendInfo.blendType)
+    //        {
+    //        case TransitionType::Transition_Type_Smooth:
+    //            {
+    //                //const gef::Animation* prevClip = m_Activeplayer->clip();
+    //                //const gef::Animation* newClip = p_CurrentAnimation->clip;
+    //                //
+    //                //if (p_CurrentAnimation->type == ClipType::Clip_Type_Walk)
+    //                //{
+    //                //    float walkClipDuration = newClip->duration() / prevClip->duration() - 1.f;
+    //                //    float runClipDuration = 1.f - prevClip->duration() / newClip->duration();
+    //                //    m_Activeplayer->set_playback_speed(runClipDuration * interpolationFactor);
+    //                //    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_playback_speed(walkClipDuration * interpolationFactor);
+    //                //}
+    //                //else if (p_CurrentAnimation->type == ClipType::Clip_Type_Run)
+    //                //{
+    //                //    float walkClipDuration = prevClip->duration() / newClip->duration() - 1.f;
+    //                //    float runClipDuration = 1.f - newClip->duration() / prevClip->duration();
+    //                //    m_Activeplayer->set_playback_speed(walkClipDuration * interpolationFactor);
+    //                //    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_playback_speed(runClipDuration * interpolationFactor);
+    //                //}
+    //            }
+    //            m_Activeplayer->Update(frameTime, p_MeshInstance->bind_pose());
+    //        case TransitionType::Transition_Type_Frozen:
+    //            m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].Update(frameTime, p_MeshInstance->bind_pose());
+    //            {
+    //                const gef::SkeletonPose& startPose = m_Activeplayer->pose();
+    //                const gef::SkeletonPose& endPose = m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].pose();
+    //                m_BlendedPose.Linear2PoseBlend(startPose, endPose, interpolationFactor);
+    //            }
+    //            p_MeshInstance->UpdateBoneMatrices(m_BlendedPose);
+    //            break;
+    //        default:
+    //            break;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        m_Activeplayer = &m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex];
+    //        m_BlendInfo.blend = false;
+    //        m_BlendInfo.blendClock = 0.f;
+    //        m_Activeplayer->set_playback_speed(1.f);
+    //        // rest will be overwritten anyways
+    //    }
+    //    return;
+    //}
 
-    // Calculate the animation matrices of the animation from the bind pose of the mesh
-    m_Activeplayer->Update(frameTime, p_MeshInstance->bind_pose());
-    // Store the result into the mesh bone matrices so they can be supplied to the shader
-    p_MeshInstance->UpdateBoneMatrices(m_Activeplayer->pose());
+    //// Calculate the animation matrices of the animation from the bind pose of the mesh
+    //m_Activeplayer->Update(frameTime, p_MeshInstance->bind_pose());
+    //// Store the result into the mesh bone matrices so they can be supplied to the shader
+    //p_MeshInstance->UpdateBoneMatrices(m_Activeplayer->pose());
+
+    if (m_TestBlendNodeID < UINT32_MAX)
+    {
+        float interpolationFactor = 1.f;
+        reinterpret_cast<LinearBlendNode*>(p_BlendTree->GetNode(m_TestBlendNodeID))->SetBlendValuePtr(&interpolationFactor);
+    }
+    p_BlendTree->Update(frameTime);
+    p_MeshInstance->UpdateBoneMatrices(p_BlendTree->GetOutputPose());
 }
 
 void AsdfAnim::Animation3D::Draw(gef::Renderer3D* renderer) const

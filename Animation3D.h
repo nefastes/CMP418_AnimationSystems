@@ -1,6 +1,7 @@
 #pragma once
 #include "motion_clip_player.h"
 #include "Animation.h"
+#include "BlendNode.h"
 #include <vector>
 #include <array>
 
@@ -25,6 +26,7 @@ namespace AsdfAnim
 	{
 	public:
 		Animation3D();
+		~Animation3D();
 		static Animation3D* CreateFromFolder(gef::Platform& platform, const char* folderpath);
 		static Animation3D* CreateFromSceneFile(gef::Platform& platform, const char* folderpath);
 
@@ -41,6 +43,8 @@ namespace AsdfAnim
 
 		void SetBodyVelocity(float v) { m_BodyVelociy = v; }
 		const float& GetBodyVelocity() { return m_BodyVelociy; }
+
+		void InitBlendTree();
 
 	private:
 		gef::Scene* p_Scene;
@@ -67,6 +71,9 @@ namespace AsdfAnim
 		} m_BlendInfo;
 
 		float m_BodyVelociy;
+
+		BlendTree* p_BlendTree;
+		uint32_t m_TestBlendNodeID;
 	};
 
 }

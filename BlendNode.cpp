@@ -1,13 +1,22 @@
 #include "BlendNode.h"
 #include "animation/animation.h"
-BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, p_BindPose(bindPose)
+BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_BindPose(bindPose), m_BlendedPose(bindPose)
 {
 }
 
-template<typename...B> void BlendNode::SetInputs(B*...args)
+void BlendNode::SetInput(uint32_t slot, BlendNode* input)
 {
-	uint32_t index = 0u;
-	((a_Inputs[index] = args, ++index), ...);
+	a_Inputs[slot] = input;
+}
+
+void BlendNode::SetInput(BlendNode* input1, BlendNode* input2)
+{
+	a_Inputs = { input1, input2, nullptr, nullptr };
+}
+
+void BlendNode::SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4)
+{
+	a_Inputs = { input1, input2, input3, input4 };
 }
 
 bool BlendNode::Update(float frameTime)
@@ -43,7 +52,7 @@ bool OutputNode::ProcessData(float frameTime)
 {
 	// Pass the input pose as the final output pose
 	// This node should only have one input
-	m_BlendedPose = std::move(const_cast<gef::SkeletonPose&>(a_Inputs[0]->GetPose()));
+	m_BlendedPose = a_Inputs[0]->GetPose();
 	return true;
 }
 
@@ -84,17 +93,17 @@ bool ClipNode::ProcessData(float frameTime)
 
 		// sample the animation data at the calculated time
 		// any bones that don't have animation data are set to the bind pose
-		m_BlendedPose.SetPoseFromAnim(*p_Clip, p_BindPose, time);
+		m_BlendedPose.SetPoseFromAnim(*p_Clip, r_BindPose, time);
 	}
 	else
 	{
 		// no animation associated with this player
 		// just set the pose to the bind pose
-		m_BlendedPose = p_BindPose;
+		m_BlendedPose = r_BindPose;
 	}
 
 	// return true if we have reached the end of the animation, always false when playback is looped
-	return finished;
+	return !finished;
 }
 
 void ClipNode::SetPlaybackSpeed(float speed)
@@ -126,15 +135,52 @@ const gef::Animation* ClipNode::GetClip()
 /// Linear Blend
 /// </summary>
 /// <param name="bindPose"></param>
-LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose), m_BlendValue(0.f)
+LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose), p_BlendValue(nullptr)
 {
 }
 
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+	if (!p_BlendValue || !a_Inputs[0] || !a_Inputs[1])
+		return false;
+
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), *p_BlendValue);
 	return true;
+}
+
+void LinearBlendNode::SetBlendValuePtr(float* pBlendVal)
+{
+	p_BlendValue = pBlendVal;
+}
+
+/// <summary>
+/// Linear Blend Synchronised
+/// Scales the clips durations to be synchronised, ideal for walk <-> run animations
+/// </summary>
+/// <param name="bindPose"></param>
+LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : LinearBlendNode(bindPose)
+{
+}
+
+bool LinearBlendNodeSync::ProcessData(float frameTime)
+{
+	// Scale the two input clips to be the same lengh
+	if (!p_BlendValue || !a_Inputs[0] || !a_Inputs[1])
+		return false;
+
+	ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+
+	float duration1 = input1->GetClip()->duration() / input2->GetClip()->duration() - 1.f;
+	float duration2 = 1.f - input2->GetClip()->duration() / input1->GetClip()->duration();
+
+	input1->SetPlaybackSpeed(duration1 * *p_BlendValue);
+	input2->SetPlaybackSpeed(duration2 * *p_BlendValue);
+
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), *p_BlendValue);
+
+	return LinearBlendNode::ProcessData(frameTime);
 }
 
 /// <summary>
@@ -144,35 +190,70 @@ bool LinearBlendNode::ProcessData(float frameTime)
 BlendTree::BlendTree(const gef::SkeletonPose& bindPose) : m_BindPose(bindPose)
 {
 	// The root node will always be an output node
-	m_Tree.push_back(new OutputNode(m_BindPose));
+	v_Tree.push_back(new OutputNode(m_BindPose));
 }
 
 BlendTree::~BlendTree()
 {
-	for (auto& item : m_Tree)
+	for (auto& item : v_Tree)
 		delete item, item = nullptr;
-	m_Tree.clear();
+	v_Tree.clear();
 }
 
 const gef::SkeletonPose& BlendTree::GetOutputPose()
 {
 	// Return the pose from the output node
-	return m_Tree.front()->GetPose();
+	return v_Tree.front()->GetPose();
 }
 
 uint32_t BlendTree::AddNode(BlendNode* node)
 {
-	m_Tree.push_back(node);
-	return static_cast<uint32_t>(m_Tree.size() - 1u);
+	v_Tree.push_back(node);
+	return v_Tree.size() - 1u;
 }
 
-BlendNode* BlendTree::GetNode(uint32_t index)
+uint32_t BlendTree::AddNode(NodeType_ type)
 {
-	return m_Tree[index];
+	switch (type)
+	{
+	case NodeType_::NodeType_Output:		v_Tree.push_back(new OutputNode(m_BindPose));		break;
+	case NodeType_::NodeType_Clip:			v_Tree.push_back(new ClipNode(m_BindPose));			break;
+	case NodeType_::NodeType_LinearBlend:	v_Tree.push_back(new LinearBlendNode(m_BindPose));	break;
+	default:
+		return UINT32_MAX;
+	}
+	return v_Tree.size() - 1u;
+}
+
+BlendNode* BlendTree::GetNode(uint32_t ID)
+{
+	return v_Tree[ID];
+}
+
+void BlendTree::ConnectToRoot(uint32_t inputNodeID)
+{
+	v_Tree[0u]->SetInput(0u, v_Tree[inputNodeID]);
+}
+
+void BlendTree::ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID)
+{
+	// No check on these functions because the parameters should only be optained using the AddNode function
+	// The input slot should be dictated by the GUI
+	v_Tree[receiverNodeID]->SetInput(inputSlot, v_Tree[inputNodeID]);
+}
+
+void BlendTree::ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID)
+{
+	v_Tree[receiverNodeID]->SetInput(v_Tree[inputNodeID1], v_Tree[inputNodeID2]);
+}
+
+void BlendTree::ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID)
+{
+	v_Tree[receiverNodeID]->SetInput(v_Tree[inputNodeID1], v_Tree[inputNodeID2], v_Tree[inputNodeID3], v_Tree[inputNodeID4]);
 }
 
 void BlendTree::Update(float frameTime)
 {
 	// Call the update on the root node to commence a post-order traversal
-	m_Tree[0]->Update(frameTime);
+	v_Tree[0]->Update(frameTime);
 }

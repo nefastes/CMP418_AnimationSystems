@@ -263,15 +263,20 @@ void SceneApp::DrawHUD()
 						transform.SetTranslation(t);
 						current3D->SetMeshTransform(transform);
 					}
-					ImGui::Text("Rotation PitchYawRoll");
-					if (ImGui::DragFloat3("Rotation PitchYawRoll", &gui_animation_rotations_[i].x, .01f))
+					ImGui::Text("Rotation Pitch Yaw Roll");
+					if (ImGui::DragFloat3("Rotation Pitch Yaw Roll", &gui_animation_rotations_[i].x, 1.f))
 					{
-						gef::Matrix44 pitch, yaw, roll;
+						gef::Matrix44 pitch, yaw, roll, translation, scale;
 						gef::Matrix44 transform = current3D->GetMeshTransform();
+						const gef::Vector4 t(gui_animation_translations_[i].x, gui_animation_translations_[i].y, gui_animation_translations_[i].z);
+						const gef::Vector4 s(gui_animation_scales_[i].x, gui_animation_scales_[i].y, gui_animation_scales_[i].z);
 						pitch.RotationX(gef::DegToRad(gui_animation_rotations_[i].x));
 						yaw.RotationY(gef::DegToRad(gui_animation_rotations_[i].y));
 						roll.RotationZ(gef::DegToRad(gui_animation_rotations_[i].z));
-						transform = transform * pitch * yaw * roll;
+						translation.SetIdentity();
+						translation.SetTranslation(t);
+						scale.Scale(s);
+						transform = scale * pitch * yaw * roll * translation;
 						current3D->SetMeshTransform(transform);
 					}
 					ImGui::Text("Scale XYZ");
