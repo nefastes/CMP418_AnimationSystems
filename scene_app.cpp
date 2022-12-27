@@ -153,10 +153,25 @@ void SceneApp::DrawHUD()
 				if (currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D) || currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D_Rigged))
 				{
 					AsdfAnim::Animation2D* current2D = reinterpret_cast<AsdfAnim::Animation2D*>(currentAnim);
+					if (current2D->GetArmatureCount() > 1)
+					{
+						if (ImGui::BeginCombo("Armature", current2D->GetArmatureName(current2D->GetCurrentArmature()).c_str()))
+						{
+							for (uint32_t j = 0u; j < current2D->GetArmatureCount(); ++j)
+							{
+								const bool selected = gui_selected_subanimation_[i] == j;
+								if (ImGui::Selectable(current2D->GetArmatureName(j).c_str(), selected))
+									current2D->SelectArmature(j);
 
-					ImGui::Text("Clip:");
+								if (selected)
+									ImGui::SetItemDefaultFocus();
+							}
+							ImGui::EndCombo();
+						}
+					}
+
 					const std::vector<std::string>& availableAnims = current2D->AvailableClips();
-					if (ImGui::BeginCombo("combo", availableAnims.at(gui_selected_subanimation_[i]).c_str()))
+					if (ImGui::BeginCombo("Clip", availableAnims.at(gui_selected_subanimation_[i]).c_str()))
 					{
 						for (size_t j = 0u; j < availableAnims.size(); ++j)
 						{
@@ -172,8 +187,6 @@ void SceneApp::DrawHUD()
 						}
 						ImGui::EndCombo();
 					}
-
-
 
 					gef::Vector2 spritePos = current2D->GetSprite()->GetBodyPosition();
 					if (ImGui::DragFloat2("Position", &spritePos.x), .1f)

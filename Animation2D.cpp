@@ -3,7 +3,7 @@
 #include "AnimatedSprite.h"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-AsdfAnim::Animation2D::Animation2D() : m_Playing(true), m_IsRigged(false), m_Clock(0.f), m_CurrentFrame(0u), m_SpriteSheet{}, m_Skeleton{}, p_Sprite(nullptr)
+AsdfAnim::Animation2D::Animation2D() : m_Playing(true), m_IsRigged(false), m_Clock(0.f), m_CurrentFrame(0u), m_CurrentArmature(0u), m_SpriteSheet{}, m_Skeleton{}, p_Sprite(nullptr)
 {
 }
 
@@ -70,11 +70,11 @@ void AsdfAnim::Animation2D::Update(float dt)
 	if (!m_IsRigged)
 	{
 		m_Clock += dt;
-		if (m_Clock > 1.f / static_cast<float>(m_Skeleton.armature[0].frameRate))
+		if (m_Clock > 1.f / static_cast<float>(m_Skeleton.armature[m_CurrentArmature].frameRate))
 		{
 			// Update the current frame
 			++m_CurrentFrame;
-			if (m_CurrentFrame >= m_Skeleton.armature[0].animation[m_CurrentAnimation].duration) m_CurrentFrame = 0u;
+			if (m_CurrentFrame >= m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration) m_CurrentFrame = 0u;
 			m_Clock = 0.f;
 
 			// Recalculate transforms
@@ -87,7 +87,7 @@ void AsdfAnim::Animation2D::Update(float dt)
 		CalculateTransformData();
 
 		// Reset clock
-		const float anim_time_in_sec = 1.f / m_Skeleton.armature[0].frameRate * m_Skeleton.armature[0].animation[m_CurrentAnimation].duration;
+		const float anim_time_in_sec = 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate * m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration;
 		m_Clock = fmod(m_Clock + dt, anim_time_in_sec);
 	}
 }
@@ -132,9 +132,9 @@ const unsigned& AsdfAnim::Animation2D::GetCurrentFrame()
 const char* AsdfAnim::Animation2D::GetCurrentFrameName()
 {
 	if (m_Skeleton.armature.size() == 1 && m_Skeleton.armature.back().type == "Sheet")
-		return m_Skeleton.armature[0].skin[0].slot["sheetSlot"].display[m_Skeleton.armature[0].animation[m_CurrentAnimation].slot[0].displayFrame[m_CurrentFrame].value].name.c_str();
+		return m_Skeleton.armature[m_CurrentArmature].skin[0].slot["sheetSlot"].display[m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].slot[0].displayFrame[m_CurrentFrame].value].name.c_str();
 	else
-		return m_Skeleton.armature[0].animation[m_CurrentAnimation].name.c_str();
+		return m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].name.c_str();
 }
 
 void AsdfAnim::Animation2D::CalculateTransformData()
@@ -145,8 +145,8 @@ void AsdfAnim::Animation2D::CalculateTransformData()
 	const gef::Vector2& spriteBodyScale = p_Sprite->GetBodyScale();
 	if (!m_IsRigged)
 	{
-		const unsigned displayFrame = m_Skeleton.armature[0].animation[m_CurrentAnimation].slot[0].displayFrame[m_CurrentFrame].value;
-		const std::string& frameName = m_Skeleton.armature[0].skin[0].slot["sheetSlot"].display[displayFrame].name;
+		const unsigned displayFrame = m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].slot[0].displayFrame[m_CurrentFrame].value;
+		const std::string& frameName = m_Skeleton.armature[m_CurrentArmature].skin[0].slot["sheetSlot"].display[displayFrame].name;
 		const SpriteSheet::SubTexture& subTexture = m_SpriteSheet.subTexture.at(frameName);	// TODO: StRiNg LoOkUp... I don't like this ):
 		gef::Vector2 uv(subTexture.x / m_SpriteSheet.width, subTexture.y / m_SpriteSheet.height);
 		gef::Vector2 spritePos(
@@ -177,8 +177,8 @@ void AsdfAnim::Animation2D::CalculateTransformData()
 
 		for (unsigned i = 0u; i < m_TransformData.size(); ++i)
 		{
-			const Skeleton::Armature::Slot& currentSlot = m_Skeleton.armature[0].slot[i];
-			const Skeleton::Armature::Skin::Slot::Display& currentDisplay = m_Skeleton.armature[0].skin[0].slot[currentSlot.name].display[0];
+			const Skeleton::Armature::Slot& currentSlot = m_Skeleton.armature[m_CurrentArmature].slot[i];
+			const Skeleton::Armature::Skin::Slot::Display& currentDisplay = m_Skeleton.armature[m_CurrentArmature].skin[0].slot[currentSlot.name].display[0];
 
 			// Get STT
 			const SpriteSheet::SubTexture& subTexture = m_SpriteSheet.subTexture.at(currentDisplay.name);
@@ -222,7 +222,7 @@ bool AsdfAnim::Animation2D::IsRigged()
 void AsdfAnim::Animation2D::PreviousFrame()
 {
 	--m_CurrentFrame;
-	if (m_CurrentFrame > m_Skeleton.armature[0].animation[m_CurrentAnimation].duration) m_CurrentFrame = m_Skeleton.armature[0].animation[m_CurrentAnimation].duration - 1u;
+	if (m_CurrentFrame > m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration) m_CurrentFrame = m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration - 1u;
 	//UpdateSprite(sprite, spriteTargetPosition);
 	CalculateTransformData();
 }
@@ -230,7 +230,7 @@ void AsdfAnim::Animation2D::PreviousFrame()
 void AsdfAnim::Animation2D::NextFrame()
 {
 	++m_CurrentFrame;
-	if (m_CurrentFrame >= m_Skeleton.armature[0].animation[m_CurrentAnimation].duration) m_CurrentFrame = 0u;
+	if (m_CurrentFrame >= m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration) m_CurrentFrame = 0u;
 	//UpdateSprite(sprite, spriteTargetPosition);
 	CalculateTransformData();
 }
@@ -249,11 +249,19 @@ void AsdfAnim::Animation2D::SelectAnimation(const std::string& Animation2DName)
 	m_CurrentAnimation = Animation2DName;
 }
 
+void AsdfAnim::Animation2D::SelectArmature(uint32_t s)
+{
+	assert(s < m_Skeleton.armature.size());
+	m_CurrentArmature = s;
+	
+	m_CurrentAnimation = m_Skeleton.armature[m_CurrentArmature].animation.begin()->first;
+}
+
 std::vector<std::string> AsdfAnim::Animation2D::AvailableClips()
 {
 	std::vector<std::string> result;
-	result.reserve(m_Skeleton.armature[0].animation.size());
-	for (auto anim : m_Skeleton.armature[0].animation)
+	result.reserve(m_Skeleton.armature[m_CurrentArmature].animation.size());
+	for (auto anim : m_Skeleton.armature[m_CurrentArmature].animation)
 		result.push_back(anim.first);
 	return result;
 }
@@ -296,7 +304,7 @@ void AsdfAnim::Animation2D::ReadSpriteSheetFromJSON(const rapidjson::Document& d
 		if (subtextures[i].HasMember("frameX"))		current.frameX = subtextures[i]["frameX"].GetFloat();
 		if (subtextures[i].HasMember("frameY"))		current.frameY = subtextures[i]["frameY"].GetFloat();
 		if (subtextures[i].HasMember("frameWidth"))	current.frameWidth = subtextures[i]["frameWidth"].GetFloat();		else current.frameWidth = current.width;
-		if (subtextures[i].HasMember("frameHeight"))	current.frameHeight = subtextures[i]["frameHeight"].GetFloat();		else current.frameHeight = current.height;
+		if (subtextures[i].HasMember("frameHeight"))current.frameHeight = subtextures[i]["frameHeight"].GetFloat();		else current.frameHeight = current.height;
 
 		// Calculate the transform
 		gef::Matrix33 scale = gef::Matrix33::kIdentity, translation = gef::Matrix33::kIdentity;
@@ -516,7 +524,7 @@ void AsdfAnim::Animation2D::ReadSkeletonFromJSON(const rapidjson::Document& doc)
 					}
 				} // Bone
 				// Default Animation2D will be the first loaded
-				if (j == 0u) m_CurrentAnimation = Animation2D_current.name;
+				if (i == 0u && j == 0u) m_CurrentAnimation = Animation2D_current.name;
 
 				armature_current.animation.insert({ Animation2D_current.name, Animation2D_current });
 			}
@@ -542,18 +550,18 @@ void AsdfAnim::Animation2D::ReadSkeletonFromJSON(const rapidjson::Document& doc)
 	}
 
 	// Once all the data is loaded, determine whether this is a rigged Animation2D or not
-	m_IsRigged = !(m_Skeleton.armature.size() == 1 && m_Skeleton.armature.back().type == "Sheet");
+	m_IsRigged = !(/*m_Skeleton.armature.size() == 1 &&*/ m_Skeleton.armature.back().type == "Sheet");
 }
 
 const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::string& startBoneName)
 {
 	gef::Matrix33 worldTransform;
 	worldTransform.SetIdentity();
-	Skeleton::Armature::Bone* bone = &m_Skeleton.armature[0].bone.at(startBoneName);
+	Skeleton::Armature::Bone* bone = &m_Skeleton.armature[m_CurrentArmature].bone.at(startBoneName);
 
 	while (true)
 	{
-		const Skeleton::Armature::Anim& currentAnim = m_Skeleton.armature[0].animation[m_CurrentAnimation];
+		const Skeleton::Armature::Anim& currentAnim = m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation];
 
 		// If there is Animation2D data for this bone
 		gef::Vector2 currentAnimation2DTranslation(0.f, 0.f);
@@ -567,8 +575,8 @@ const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::str
 				const size_t next = i == translateArraySize - 1 ? 0u : i + 1;
 				const auto& currentItem = currentAnim.bone.at(bone->name).translateFrame[i];
 				const auto& nextItem = currentAnim.bone.at(bone->name).translateFrame[next];
-				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[0].frameRate;	// TODO: Load as floats
-				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[0].frameRate;
+				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;	// TODO: Load as floats
+				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				if (m_Clock > currentStartTime && m_Clock < nextStartTime)
 				{
 					const float time = (m_Clock - currentStartTime) / (nextStartTime - currentStartTime);
@@ -584,8 +592,8 @@ const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::str
 				const size_t next = i == rotateArraySize - 1 ? 0u : i + 1;
 				const auto& currentItem = currentAnim.bone.at(bone->name).rotateFrame[i];
 				const auto& nextItem = currentAnim.bone.at(bone->name).rotateFrame[next];
-				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[0].frameRate;	// TODO: Load as floats
-				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[0].frameRate;
+				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;	// TODO: Load as floats
+				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				if (m_Clock > currentStartTime && m_Clock < nextStartTime)
 				{
 					const float time = (m_Clock - currentStartTime) / (nextStartTime - currentStartTime);
@@ -603,7 +611,7 @@ const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::str
 		localWorld.SetTranslation(gef::Vector2(bone->transform.x + currentAnimation2DTranslation.x, bone->transform.y + currentAnimation2DTranslation.y));
 		worldTransform = worldTransform * localWorld;
 
-		if (!bone->parent.empty()) bone = &m_Skeleton.armature[0].bone.at(bone->parent);
+		if (!bone->parent.empty()) bone = &m_Skeleton.armature[m_CurrentArmature].bone.at(bone->parent);
 		else break;
 	}
 	return std::move(worldTransform);

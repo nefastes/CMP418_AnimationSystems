@@ -185,6 +185,11 @@ namespace AsdfAnim
 		void TogglePlay();
 		void SelectAnimation(const std::string& animationName);
 
+		uint32_t GetArmatureCount() const { return m_Skeleton.armature.size(); }
+		uint32_t GetCurrentArmature() const { return m_CurrentArmature; }
+		const std::string& GetArmatureName(uint32_t index) const { return m_Skeleton.armature[index].name; }
+		void SelectArmature(uint32_t s);
+
 		std::vector<std::string> AvailableClips();
 
 		void SetSprite(gef::AnimatedSprite* s);
@@ -201,7 +206,8 @@ namespace AsdfAnim
 		bool m_Playing;
 		bool m_IsRigged;
 		float m_Clock;
-		unsigned m_CurrentFrame;
+		uint32_t m_CurrentFrame;
+		uint32_t m_CurrentArmature;
 		SpriteSheet m_SpriteSheet;
 		Skeleton m_Skeleton;
 		std::vector<TransformData> m_TransformData;
