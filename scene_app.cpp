@@ -8,38 +8,67 @@
 #include <maths/math_utils.h>
 #include <input/sony_controller_input_manager.h>
 #include <graphics/sprite.h>
-#include "load_texture.h"
+
+//#include "motion_clip_player.h"
+//#include "AnimationManager.h"
+//#include "Animation.h"
+#include "animation/skeleton.h"
+#include "animation/animation.h"
+#include "Animation.h"
+#include "Animation3D.h"
+#include "Animation2D.h"
+#include "AnimatedSprite.h"
 
 SceneApp::SceneApp(gef::Platform& platform) :
 	Application(platform),
 	sprite_renderer_(NULL),
 	input_manager_(NULL),
 	font_(NULL),
-	sprite_texture_(NULL)
+	animation_manager_(platform)
 {
 }
 
 void SceneApp::Init()
 {
+	// Init GEF components
 	sprite_renderer_ = gef::SpriteRenderer::Create(platform_);
+	renderer_3d_ = gef::Renderer3D::Create(platform_);
+	input_manager_ = gef::InputManager::Create(platform_);
 	InitFont();
 
-	// initialise input manager
-	input_manager_ = gef::InputManager::Create(platform_);
+	// Setup view and projection matrices
+	gef::Matrix44 projection_matrix;
+	gef::Matrix44 view_matrix;
+	projection_matrix = platform_.PerspectiveProjectionFov(gef::DegToRad(45.0f), (float)platform_.width() / (float)platform_.height(), .01f, 1000.f);
+	view_matrix.LookAt(gef::Vector4(-1.0f, 1.0f, 4.0f), gef::Vector4(0.0f, 1.0f, 0.0f), gef::Vector4(0.0f, 1.0f, 0.0f));
+	renderer_3d_->set_projection_matrix(projection_matrix);
+	renderer_3d_->set_view_matrix(view_matrix);
 
-	sprite_texture_ = CreateTextureFromPNG("Idle (1).png", platform_);
+	// Setup a light
+	gef::PointLight default_point_light;
+	default_point_light.set_colour(gef::Colour(0.7f, 0.7f, 1.0f, 1.0f));
+	default_point_light.set_position(gef::Vector4(-300.0f, -500.0f, 100.0f));
+	gef::Default3DShaderData& default_shader_data = renderer_3d_->default_shader_data();
+	default_shader_data.set_ambient_light_colour(gef::Colour(0.5f, 0.5f, 0.5f, 1.0f));
+	default_shader_data.AddPointLight(default_point_light);
 
-	sprite_.set_texture(sprite_texture_);
-	sprite_.set_position(gef::Vector4(platform_.width()*0.5f, platform_.height()*0.5f, -0.99f));
-	sprite_.set_height(128.0f);
-	sprite_.set_width(128.0f);
+	// Load example animations
+	animation_manager_.LoadAllGef3DFromFolder("", true);			// This will load all 3D animations within the media folder
+	animation_manager_.LoadAllDragonbone2DJsonFromFolder("", true);	// This will load all 2D animations within the media folder (DragonBone)
+
+	// Setup gui varaibles
+	size_t size3d = animation_manager_.GetAvailable3DDatas().size();
+	size_t size2d = animation_manager_.GetAvailable2DDatas().size();
+	gui_selected_subanimation_.resize(size3d + size2d);
+	gui_animation_transition_time_.resize(size3d, 1.f);
+	gui_animation_transition_type_.resize(size3d, AsdfAnim::TransitionType::Transition_Type_Frozen);
+	gui_animation_translations_.resize(size3d);
+	gui_animation_rotations_.resize(size3d);
+	gui_animation_scales_.resize(size3d, ImVec4(1.f, 1.f, 1.f, 0.f));
 }
 
 void SceneApp::CleanUp()
 {
-	delete sprite_texture_;
-	sprite_texture_ = NULL;
-
 	delete input_manager_;
 	input_manager_ = NULL;
 
@@ -53,22 +82,23 @@ bool SceneApp::Update(float frame_time)
 {
 	fps_ = 1.0f / frame_time;
 
-
 	input_manager_->Update();
+	animation_manager_.Update(frame_time);
 
 	return true;
 }
 
-
-
-
 void SceneApp::Render()
 {
-	sprite_renderer_->Begin();
+	// draw meshes here
+	renderer_3d_->Begin();
+	animation_manager_.Draw3D(renderer_3d_);
+	renderer_3d_->End();
 
-	// Render button icon
-	sprite_renderer_->DrawSprite(sprite_);
-
+	// setup the sprite renderer, but don't clear the frame buffer
+	// draw 2D sprites here
+	sprite_renderer_->Begin(false);
+	animation_manager_.Draw2D(sprite_renderer_);
 	DrawHUD();
 	sprite_renderer_->End();
 }
@@ -91,6 +121,180 @@ void SceneApp::DrawHUD()
 	{
 		// display frame rate
 		font_->RenderText(sprite_renderer_, gef::Vector4(850.0f, 510.0f, -0.9f), 1.0f, 0xffffffff, gef::TJ_LEFT, "FPS: %.1f", fps_);
+	}
+
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+
+	//ImGui::ShowDemoWindow();
+
+	//static bool imgui = true;
+	const std::vector<const std::string*>& availableNames = animation_manager_.GetAvailableFileNames();
+	const std::vector<AsdfAnim::Animation2D*>& available2D = animation_manager_.GetAvailable2DDatas();
+	const std::vector<AsdfAnim::Animation3D*>& available3D = animation_manager_.GetAvailable3DDatas();
+	ImGui::Begin("Animation System"/*, &imgui, ImGuiWindowFlags_NoTitleBar*/);
+	if (ImGui::BeginTabBar("tabs"))
+	{
+		for (uint32_t i = 0; i < availableNames.size(); ++i)
+		{
+			AsdfAnim::Animation* currentAnim = i >= available3D.size() ? (AsdfAnim::Animation*)available2D[i - available3D.size()] : (AsdfAnim::Animation*)available3D[i];
+			bool active = currentAnim->IsActive();
+
+			if (ImGui::BeginTabItem(availableNames[i]->c_str()))
+			{
+				if (ImGui::Checkbox("Active", &active))
+					currentAnim->SetActive(active);
+
+				ImGui::NewLine();
+				ImGui::Separator();
+
+				if (currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D) || currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D_Rigged))
+				{
+					AsdfAnim::Animation2D* current2D = reinterpret_cast<AsdfAnim::Animation2D*>(currentAnim);
+
+					ImGui::Text("Clip:");
+					const std::vector<std::string>& availableAnims = current2D->AvailableClips();
+					if (ImGui::BeginCombo("combo", availableAnims.at(gui_selected_subanimation_[i]).c_str()))
+					{
+						for (size_t j = 0u; j < availableAnims.size(); ++j)
+						{
+							const bool selected = gui_selected_subanimation_[i] == j;
+							if (ImGui::Selectable(availableAnims[j].c_str(), selected))
+							{
+								gui_selected_subanimation_[i] = j;
+								current2D->SelectAnimation(availableAnims[gui_selected_subanimation_[i]]);
+							}
+
+							if (selected)
+								ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+
+
+
+					gef::Vector2 spritePos = current2D->GetSprite()->GetBodyPosition();
+					if (ImGui::DragFloat2("Position", &spritePos.x), .1f)
+						current2D->GetSprite()->SetBodyPosition(spritePos);
+
+					float spriteRoatation = current2D->GetSprite()->GetBodyRotation();
+					if (ImGui::DragFloat("Rotation", &spriteRoatation), 1.f, 0.f, 360.f)
+						current2D->GetSprite()->SetBodyRotation(spriteRoatation);
+
+					gef::Vector2 spriteScale = current2D->GetSprite()->GetBodyScale();
+					if (ImGui::DragFloat2("Scale", &spriteScale.x), .1f)
+						current2D->GetSprite()->SetBodyScale(spriteScale);
+				}
+				else if (currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_3D))
+				{
+					AsdfAnim::Animation3D* current3D = reinterpret_cast<AsdfAnim::Animation3D*>(currentAnim);
+
+					// A combo to the current playing animation
+					const std::vector<std::string>& availableAnims = current3D->AvailableClips();
+					if (ImGui::BeginCombo("Clip", availableAnims.at(gui_selected_subanimation_[i]).c_str()))
+					{
+						for (size_t j = 0u; j < availableAnims.size(); ++j)
+						{
+							const bool selected = gui_selected_subanimation_[i] == j;
+							if (ImGui::Selectable(availableAnims[j].c_str(), selected))
+							{
+								gui_selected_subanimation_[i] = j;
+								current3D->TransitionToAnimation(gui_selected_subanimation_[i], gui_animation_transition_time_[i], gui_animation_transition_type_[i]);
+							}
+
+							if (selected)
+								ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+
+					// i'm lazy!
+					static std::string gui_transition_type_combo_preview = "Frozen";
+					if (ImGui::BeginCombo("Transition type", gui_transition_type_combo_preview.c_str()))
+					{
+						bool selected = gui_transition_type_combo_preview == "Frozen";
+						if (ImGui::Selectable("Frozen", selected))
+						{
+							gui_transition_type_combo_preview = "Frozen";
+							gui_animation_transition_type_[i] = AsdfAnim::TransitionType::Transition_Type_Frozen;
+						}
+						if (selected)
+							ImGui::SetItemDefaultFocus();
+
+						selected = gui_transition_type_combo_preview == "Smooth";
+						if (ImGui::Selectable("Smooth", selected))
+						{
+							gui_transition_type_combo_preview = "Smooth";
+							gui_animation_transition_type_[i] = AsdfAnim::TransitionType::Transition_Type_Smooth;
+						}
+						if (selected)
+							ImGui::SetItemDefaultFocus();
+						ImGui::EndCombo();
+					}
+					ImGui::DragFloat("Transition time:", &gui_animation_transition_time_[i], .1f, 0.f);
+					float vel = current3D->GetBodyVelocity();
+					if (ImGui::DragFloat("Body velocity", &vel, .01f, 0.f, 5.f))
+						current3D->SetBodyVelocity(vel);
+
+					ImGui::NewLine();
+					ImGui::Separator();
+
+					// The transform of the mesh
+					ImGui::Text("Translation XYZ");
+					if (ImGui::DragFloat3("Translation XYZ", &gui_animation_translations_[i].x, .1f))
+					{
+						gef::Vector4 t(gui_animation_translations_[i].x, gui_animation_translations_[i].y, gui_animation_translations_[i].z);
+						gef::Matrix44 transform = current3D->GetMeshTransform();
+						transform.SetTranslation(t);
+						current3D->SetMeshTransform(transform);
+					}
+					ImGui::Text("Rotation PitchYawRoll");
+					if (ImGui::DragFloat3("Rotation PitchYawRoll", &gui_animation_rotations_[i].x, .01f))
+					{
+						gef::Matrix44 pitch, yaw, roll;
+						gef::Matrix44 transform = current3D->GetMeshTransform();
+						pitch.RotationX(gef::DegToRad(gui_animation_rotations_[i].x));
+						yaw.RotationY(gef::DegToRad(gui_animation_rotations_[i].y));
+						roll.RotationZ(gef::DegToRad(gui_animation_rotations_[i].z));
+						transform = transform * pitch * yaw * roll;
+						current3D->SetMeshTransform(transform);
+					}
+					ImGui::Text("Scale XYZ");
+					if (ImGui::DragFloat3("Scale XYZ", &gui_animation_scales_[i].x, .1f))
+					{
+						gef::Vector4 t(gui_animation_scales_[i].x, gui_animation_scales_[i].y, gui_animation_scales_[i].z);
+						gef::Matrix44 transform = current3D->GetMeshTransform();
+						transform.Scale(t);
+						current3D->SetMeshTransform(transform);
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Scale for x/y-bot"))
+					{
+						gui_animation_scales_[i] = ImVec4(.01f, .01f, .01f, 0.f);
+						gef::Vector4 t(gui_animation_scales_[i].x, gui_animation_scales_[i].y, gui_animation_scales_[i].z);
+						gef::Matrix44 transform = current3D->GetMeshTransform();
+						transform.Scale(t);
+						current3D->SetMeshTransform(transform);
+					}
+				}
+
+				ImGui::EndTabItem();
+			}
+		}
+		ImGui::EndTabBar();
+	}
+	ImGui::End();
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+	ImGuiIO& io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
 	}
 }
 

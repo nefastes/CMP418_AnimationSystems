@@ -1,0 +1,96 @@
+{
+  "frameRate": 24,
+  "name": "boy-move",
+  "version": "5.5",
+  "compatibleVersion": "5.5",
+  "armature": [
+    {
+      "type": "Sheet",
+      "frameRate": 6,
+      "name": "boy-move",
+      "aabb": {
+        "x": -75,
+        "y": -75,
+        "width": 150,
+        "height": 150
+      },
+      "bone": [
+        {
+          "name": "root"
+        }
+      ],
+      "slot": [
+        {
+          "displayIndex": 1,
+          "name": "sheetSlot",
+          "parent": "root"
+        }
+      ],
+      "skin": [
+        {
+          "slot": [
+            {
+              "name": "sheetSlot",
+              "display": [
+                {
+                  "name": "4_move_0"
+                },
+                {
+                  "name": "4_move_1"
+                },
+                {
+                  "name": "4_move_2"
+                },
+                {
+                  "name": "4_move_3"
+                },
+                {
+                  "name": "4_move_4"
+                },
+                {
+                  "name": "4_move_5"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "animation": [
+        {
+          "duration": 6,
+          "playTimes": 0,
+          "name": "boy-move",
+          "slot": [
+            {
+              "name": "sheetSlot",
+              "displayFrame": [
+                {
+                },
+                {
+                  "value": 1
+                },
+                {
+                  "value": 2
+                },
+                {
+                  "value": 3
+                },
+                {
+                  "value": 4
+                },
+                {
+                  "value": 5
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "defaultActions": [
+        {
+          "gotoAndPlay": "boy-move"
+        }
+      ]
+    }
+  ]
+}

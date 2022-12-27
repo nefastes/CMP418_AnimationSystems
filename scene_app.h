@@ -5,7 +5,16 @@
 #include <maths/vector2.h>
 #include <graphics/sprite.h>
 #include <input/input_manager.h>
+#include <vector>
+#include <graphics/skinned_mesh_instance.h>
 
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_dx11.h"
+#include "../imgui/imgui_impl_win32.h"
+
+#include "motion_clip_player.h"
+#include "AnimationManager.h"
+#include "Animation.h"
 
 // FRAMEWORK FORWARD DECLARATIONS
 namespace gef
@@ -15,7 +24,6 @@ namespace gef
 	class Font;
 	class InputManager;
 }
-
 
 class SceneApp : public gef::Application
 {
@@ -30,12 +38,10 @@ private:
 	void CleanUpFont();
 	void DrawHUD();
     
+	gef::Renderer3D* renderer_3d_;
 	gef::SpriteRenderer* sprite_renderer_;
 	gef::Font* font_;
 	gef::InputManager* input_manager_;
-
-	gef::Texture* sprite_texture_;
-	gef::Sprite sprite_;
 
 	float fps_;
 
@@ -43,6 +49,16 @@ private:
 	void FrontendRelease();
 	void FrontendUpdate(float frame_time);
 	void FrontendRender();
+
+
+	// Animation manager and UI variables
+	AsdfAnim::AnimationManager animation_manager_;
+	std::vector<size_t> gui_selected_subanimation_;
+	std::vector<float> gui_animation_transition_time_;
+	std::vector<AsdfAnim::TransitionType> gui_animation_transition_type_;
+	std::vector<ImVec4> gui_animation_translations_;
+	std::vector<ImVec4> gui_animation_rotations_;
+	std::vector<ImVec4> gui_animation_scales_;
 };
 
 #endif // _SCENE_APP_H

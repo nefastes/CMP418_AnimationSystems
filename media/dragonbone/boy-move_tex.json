@@ -1,0 +1,74 @@
+{
+  "width": 256,
+  "imagePath": "boy-move_tex.png",
+  "height": 256,
+  "name": "boy-move",
+  "SubTexture": [
+    {
+      "frameHeight": 150,
+      "y": 1,
+      "frameX": -33,
+      "width": 78,
+      "frameY": -48,
+      "height": 87,
+      "name": "4_move_1",
+      "frameWidth": 150,
+      "x": 164
+    },
+    {
+      "frameHeight": 150,
+      "y": 1,
+      "frameX": -30,
+      "width": 81,
+      "frameY": -51,
+      "height": 84,
+      "name": "4_move_2",
+      "frameWidth": 150,
+      "x": 1
+    },
+    {
+      "frameHeight": 150,
+      "y": 87,
+      "frameX": -30,
+      "width": 81,
+      "frameY": -51,
+      "height": 84,
+      "name": "4_move_5",
+      "frameWidth": 150,
+      "x": 1
+    },
+    {
+      "frameHeight": 150,
+      "y": 90,
+      "frameX": -36,
+      "width": 75,
+      "frameY": -48,
+      "height": 87,
+      "name": "4_move_3",
+      "frameWidth": 150,
+      "x": 161
+    },
+    {
+      "frameHeight": 150,
+      "y": 90,
+      "frameX": -36,
+      "width": 75,
+      "frameY": -48,
+      "height": 87,
+      "name": "4_move_0",
+      "frameWidth": 150,
+      "x": 84
+    },
+    {
+      "frameHeight": 150,
+      "y": 1,
+      "frameX": -33,
+      "width": 78,
+      "frameY": -48,
+      "height": 87,
+      "name": "4_move_4",
+      "frameWidth": 150,
+      "x": 84
+    }
+  ]
+}

@@ -1,5 +1,4 @@
-#include "load_texture.h"
-
+#pragma once
 #include <assets/png_loader.h>
 #include <graphics/image_data.h>
 #include <graphics/texture.h>
