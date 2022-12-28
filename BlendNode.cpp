@@ -19,6 +19,26 @@ void BlendNode::SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3
 	a_Inputs = { input1, input2, input3, input4 };
 }
 
+void BlendNode::AddInput(BlendNode * input)
+{
+	for (auto& item : a_Inputs)
+		if (item == nullptr)
+		{
+			item = input;
+			break;
+		}
+}
+
+void BlendNode::RemoveInput(BlendNode * input)
+{
+	for(auto& item : a_Inputs)
+		if (item == input)
+		{
+			item = nullptr;
+			break;
+		}
+}
+
 bool BlendNode::Update(float frameTime)
 {
 	// Track and update all the parameters before processing its own data to follow a post-order traversal
@@ -146,10 +166,10 @@ LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	if (!a_Inputs[0] || !a_Inputs[1])
-		return false;
-
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+	if (!a_Inputs[0] || !a_Inputs[1])		return false;
+	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
+	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
+	else									m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 	return true;
 }
 
@@ -176,21 +196,24 @@ LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : Li
 bool LinearBlendNodeSync::ProcessData(float frameTime)
 {
 	// Scale the two input clips to be the same lengh
-	if (!a_Inputs[0] || !a_Inputs[1])
-		return false;
+	if (!a_Inputs[0] || !a_Inputs[1])		return false;
+	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
+	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
+	else
+	{
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 
-	ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
-	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		float duration1 = input1->GetClip()->clip->duration() / input2->GetClip()->clip->duration() - 1.f;
+		float duration2 = 1.f - input2->GetClip()->clip->duration() / input1->GetClip()->clip->duration();
 
-	float duration1 = input1->GetClip()->clip->duration() / input2->GetClip()->clip->duration() - 1.f;
-	float duration2 = 1.f - input2->GetClip()->clip->duration() / input1->GetClip()->clip->duration();
+		input1->SetPlaybackSpeed(duration1 * m_BlendValue);
+		input2->SetPlaybackSpeed(duration2 * m_BlendValue);
 
-	input1->SetPlaybackSpeed(duration1 * m_BlendValue);
-	input2->SetPlaybackSpeed(duration2 * m_BlendValue);
+		m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+	}
 
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
-
-	return LinearBlendNode::ProcessData(frameTime);
+	return true;
 }
 
 /// <summary>

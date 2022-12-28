@@ -19,6 +19,8 @@ public:
 	void SetInput(uint32_t slot, BlendNode* input);
 	void SetInput(BlendNode* input1, BlendNode* input2);
 	void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
+	void AddInput(BlendNode* input);
+	void RemoveInput(BlendNode* input);
 	bool Update(float frameTime);
 	virtual bool ProcessData(float frameTime) = 0;
 	const gef::SkeletonPose& GetPose();

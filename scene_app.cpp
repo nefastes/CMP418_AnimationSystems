@@ -209,56 +209,6 @@ void SceneApp::DrawHUD()
 				{
 					AsdfAnim::Animation3D* current3D = reinterpret_cast<AsdfAnim::Animation3D*>(currentAnim);
 
-					//// A combo to the current playing animation
-					//const std::vector<std::string>& availableAnims = current3D->AvailableClips();
-					//if (ImGui::BeginCombo("Clip", availableAnims.at(gui_selected_subanimation_[i]).c_str()))
-					//{
-					//	for (size_t j = 0u; j < availableAnims.size(); ++j)
-					//	{
-					//		const bool selected = gui_selected_subanimation_[i] == j;
-					//		if (ImGui::Selectable(availableAnims[j].c_str(), selected))
-					//		{
-					//			gui_selected_subanimation_[i] = j;
-					//			current3D->TransitionToAnimation(gui_selected_subanimation_[i], gui_animation_transition_time_[i], gui_animation_transition_type_[i]);
-					//		}
-
-					//		if (selected)
-					//			ImGui::SetItemDefaultFocus();
-					//	}
-					//	ImGui::EndCombo();
-					//}
-
-					//// i'm lazy!
-					//static std::string gui_transition_type_combo_preview = "Frozen";
-					//if (ImGui::BeginCombo("Transition type", gui_transition_type_combo_preview.c_str()))
-					//{
-					//	bool selected = gui_transition_type_combo_preview == "Frozen";
-					//	if (ImGui::Selectable("Frozen", selected))
-					//	{
-					//		gui_transition_type_combo_preview = "Frozen";
-					//		gui_animation_transition_type_[i] = AsdfAnim::TransitionType::Transition_Type_Frozen;
-					//	}
-					//	if (selected)
-					//		ImGui::SetItemDefaultFocus();
-
-					//	selected = gui_transition_type_combo_preview == "Smooth";
-					//	if (ImGui::Selectable("Smooth", selected))
-					//	{
-					//		gui_transition_type_combo_preview = "Smooth";
-					//		gui_animation_transition_type_[i] = AsdfAnim::TransitionType::Transition_Type_Smooth;
-					//	}
-					//	if (selected)
-					//		ImGui::SetItemDefaultFocus();
-					//	ImGui::EndCombo();
-					//}
-					//ImGui::DragFloat("Transition time:", &gui_animation_transition_time_[i], .1f, 0.f);
-					//float vel = current3D->GetBodyVelocity();
-					//if (ImGui::DragFloat("Body velocity", &vel, .01f, 0.f, 5.f))
-					//	current3D->SetBodyVelocity(vel);
-
-					//ImGui::NewLine();
-					//ImGui::Separator();
-
 					// The transform of the mesh
 					ImGui::Text("Translation XYZ");
 					if (ImGui::DragFloat3("Translation XYZ", &gui_animation_translations_[i].x, .1f))

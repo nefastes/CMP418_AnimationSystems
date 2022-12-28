@@ -19,6 +19,8 @@ struct BasicInteractionExample :
         ed::LinkId Id;
         ed::PinId  InputId;
         ed::PinId  OutputId;
+        BlendNode* nodeWithInput;
+        BlendNode* nodeWithOutput;
     };
 
     struct BuildLinkInfo
@@ -60,6 +62,7 @@ struct BasicInteractionExample :
 
     void ResetFor(AsdfAnim::Animation3D* anim)
     {
+        if (p_SentAnim == anim) return;
         p_SentAnim = anim;
         m_Links.clear();
     }
@@ -83,6 +86,7 @@ struct BasicInteractionExample :
         // The key is the pointer of the node of interest
         // This makes lookup easy based on BlendNode.h
         std::unordered_map<BlendNode*, BuildLinkInfo> map_BuildLinkInfo;
+        std::unordered_map<uintptr_t, BlendNode*> map_PinToBlendnode;
 
         //
         // 1) Commit known data to editor
@@ -101,6 +105,8 @@ struct BasicInteractionExample :
 
             BlendNode* node = treeToDraw[i];
             map_BuildLinkInfo.insert({ node, { {node_InputPinId}, node_OutputPinId } });
+            map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId, node });
+            map_PinToBlendnode.insert({ (uintptr_t)node_OutputPinId, node });
             switch (node->GetType())
             {
             case NodeType_::NodeType_Output:
@@ -159,6 +165,7 @@ struct BasicInteractionExample :
                     // There is a second input
                     ed::PinId  node_InputPinId2 = uniqueId++;
                     map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
+                    map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId2, node });
 
                     ed::BeginNode(node_Id);
                     ImGui::Text("Linear Blend");
@@ -188,6 +195,7 @@ struct BasicInteractionExample :
                     // There is a second input
                     ed::PinId  node_InputPinId2 = uniqueId++;
                     map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
+                    map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId2, node });
 
                     ed::BeginNode(node_Id);
                     ImGui::Text("Linear Blend Sync");
@@ -241,51 +249,9 @@ struct BasicInteractionExample :
                 }
 
                 if(!linkExists)
-                    m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputID, outputID });
+                    m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputID, outputID, node, input });
             }
         }
-
-        //// Submit Node A
-        //ed::NodeId nodeA_Id = uniqueId++;
-        //ed::PinId  nodeA_InputPinId = uniqueId++;
-        //ed::PinId  nodeA_OutputPinId = uniqueId++;
-
-        //if (m_FirstFrame)
-        //    ed::SetNodePosition(nodeA_Id, ImVec2(10, 10));
-        //ed::BeginNode(nodeA_Id);
-        //ImGui::Text("Node A");
-        //ed::BeginPin(nodeA_InputPinId, ed::PinKind::Input);
-        //ImGui::Text("-> In");
-        //ed::EndPin();
-        //ImGui::SameLine();
-        //ed::BeginPin(nodeA_OutputPinId, ed::PinKind::Output);
-        //ImGui::Text("Out ->");
-        //ed::EndPin();
-        //ed::EndNode();
-
-        //// Submit Node B
-        //ed::NodeId nodeB_Id = uniqueId++;
-        //ed::PinId  nodeB_InputPinId1 = uniqueId++;
-        //ed::PinId  nodeB_InputPinId2 = uniqueId++;
-        //ed::PinId  nodeB_OutputPinId = uniqueId++;
-
-        //if (m_FirstFrame)
-        //    ed::SetNodePosition(nodeB_Id, ImVec2(210, 60));
-        //ed::BeginNode(nodeB_Id);
-        //ImGui::Text("Node B");
-        //ImGuiEx_BeginColumn();
-        //ed::BeginPin(nodeB_InputPinId1, ed::PinKind::Input);
-        //ImGui::Text("-> In1");
-        //ed::EndPin();
-        //ed::BeginPin(nodeB_InputPinId2, ed::PinKind::Input);
-        //ImGui::Text("-> In2");
-        //ed::EndPin();
-        //ImGuiEx_NextColumn();
-        //ed::BeginPin(nodeB_OutputPinId, ed::PinKind::Output);
-        //ImGui::Text("Out ->");
-        //ed::EndPin();
-        //ImGuiEx_EndColumn();
-        //ed::EndNode();
 
         // Submit Links
         for (auto& linkInfo : m_Links)
@@ -318,8 +284,13 @@ struct BasicInteractionExample :
                     // ed::AcceptNewItem() return true when user release mouse button.
                     if (ed::AcceptNewItem())
                     {
+                        // Connect blendnodes
+                        BlendNode* nodeWithInput = map_PinToBlendnode[(uintptr_t)outputPinId];  // This is the node with the connected input slot
+                        BlendNode* nodeWithOutput = map_PinToBlendnode[(uintptr_t)inputPinId];  // This is the node with the output slot
+                        nodeWithInput->AddInput(nodeWithOutput);
+
                         // Since we accepted new link, lets add one to our list of links.
-                        m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputPinId, outputPinId });
+                        m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputPinId, outputPinId, nodeWithInput, nodeWithOutput });
 
                         // Draw new link.
                         ed::Link(m_Links.back().Id, m_Links.back().InputId, m_Links.back().OutputId);
@@ -350,6 +321,7 @@ struct BasicInteractionExample :
                         if (link.Id == deletedLinkId)
                         {
                             m_Links.erase(&link);
+                            link.nodeWithInput->RemoveInput(link.nodeWithOutput);
                             break;
                         }
                     }
