@@ -3,6 +3,7 @@
 # include "node-editor\imgui_node_editor.h"
 # include "node-editor\application.h"
 #include "Animation3D.h"
+#include <unordered_map>
 
 namespace ed = ax::NodeEditor;
 
@@ -18,6 +19,12 @@ struct BasicInteractionExample :
         ed::LinkId Id;
         ed::PinId  InputId;
         ed::PinId  OutputId;
+    };
+
+    struct BuildLinkInfo
+    {
+        std::vector<ed::PinId> inputs;
+        ed::PinId output;
     };
 
     using Application::Application;
@@ -51,6 +58,12 @@ struct BasicInteractionExample :
         ImGui::EndGroup();
     }
 
+    void ResetFor(AsdfAnim::Animation3D* anim)
+    {
+        p_SentAnim = anim;
+        m_Links.clear();
+    }
+
     void OnFrame(float deltaTime) override
     {
         auto& io = ImGui::GetIO();
@@ -66,10 +79,16 @@ struct BasicInteractionExample :
 
         int uniqueId = 1;
 
+        // This map will store each node's available inputs
+        // The key is the pointer of the node of interest
+        // This makes lookup easy based on BlendNode.h
+        std::unordered_map<BlendNode*, BuildLinkInfo> map_BuildLinkInfo;
+
         //
         // 1) Commit known data to editor
         //
 
+        // Draw the nodes from the blend tree
         const std::vector<BlendNode*>& treeToDraw = p_SentAnim->GetBlendTree()->GetTree();
         for (size_t i = 0u; i < treeToDraw.size(); ++i)
         {
@@ -81,6 +100,7 @@ struct BasicInteractionExample :
             ed::PinId  node_OutputPinId = uniqueId++;
 
             BlendNode* node = treeToDraw[i];
+            map_BuildLinkInfo.insert({ node, { {node_InputPinId}, node_OutputPinId } });
             switch (node->GetType())
             {
             case NodeType_::NodeType_Output:
@@ -106,7 +126,6 @@ struct BasicInteractionExample :
                     ImGui::SameLine();
                     if (ImGui::Button(clipName))
                         ImGui::OpenPopup("clip");
-
                     
                     ImGui::PopItemWidth();
                     ImGuiEx_NextColumn();
@@ -126,18 +145,21 @@ struct BasicInteractionExample :
                         {
                             if (ImGui::Button(availableAnims[j].c_str())) {
                                 clipNode->SetClip(p_SentAnim->GetClip(j));
-                                ImGui::CloseCurrentPopup();  // These calls revoke the popup open state, which was set by OpenPopup above.
+                                ImGui::CloseCurrentPopup();
                             }
                         }
                         ImGui::EndChild();
-                        ImGui::EndPopup(); // Note this does not do anything to the popup open/close state. It just terminates the content declaration.
+                        ImGui::EndPopup();
                     }
                     ed::Resume();
                 }
                 break;
             case NodeType_::NodeType_LinearBlend:
                 {
+                    // There is a second input
                     ed::PinId  node_InputPinId2 = uniqueId++;
+                    map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
+
                     ed::BeginNode(node_Id);
                     ImGui::Text("Linear Blend");
                     ImGuiEx_BeginColumn();
@@ -163,7 +185,10 @@ struct BasicInteractionExample :
                 break;
             case NodeType_::NodeType_LinearBlendSync:
                 {
+                    // There is a second input
                     ed::PinId  node_InputPinId2 = uniqueId++;
+                    map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
+
                     ed::BeginNode(node_Id);
                     ImGui::Text("Linear Blend Sync");
                     ImGuiEx_BeginColumn();
@@ -191,6 +216,33 @@ struct BasicInteractionExample :
                 break;
             }
             ImGui::PopID();
+        }
+
+        // Link the nodes from the blend tree
+        for (const auto& node : treeToDraw)
+        {
+            const std::array<BlendNode*, 4>& nodeInputs = node->GetInputs();
+            for (const auto& input : nodeInputs)
+            {
+                if (!input) continue;
+
+                ed::PinId inputID, outputID;
+
+                outputID = map_BuildLinkInfo[node].inputs.back();
+                inputID = map_BuildLinkInfo[input].output;
+                map_BuildLinkInfo[node].inputs.pop_back();
+
+                // Check if no link exist with this output
+                bool linkExists = false;
+                for (const auto& link : m_Links)
+                {
+                    linkExists = link.OutputId == outputID;
+                    if (linkExists) break;
+                }
+
+                if(!linkExists)
+                    m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputID, outputID });
+            }
         }
 
         //// Submit Node A

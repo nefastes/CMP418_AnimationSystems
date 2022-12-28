@@ -23,6 +23,7 @@ public:
 	virtual bool ProcessData(float frameTime) = 0;
 	const gef::SkeletonPose& GetPose();
 	const NodeType_& GetType() const { return m_Type; }
+	const std::array<BlendNode*, 4>& GetInputs() const { return a_Inputs; }
 
 protected:
 	std::array<BlendNode*, 4> a_Inputs; // Shouldnt need more than 4 inputs

@@ -311,7 +311,7 @@ void SceneApp::DrawHUD()
 
 					// Do this seperately, since the user can keep it opened and navigate tabs on this window. Changes should take effect automatically
 					if(editor_opened_)
-						editor_.p_SentAnim = current3D;
+						editor_.ResetFor(current3D);
 				}
 
 				ImGui::EndTabItem();
