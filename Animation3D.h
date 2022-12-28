@@ -37,6 +37,7 @@ namespace AsdfAnim
 
 		const std::vector<std::string>& AvailableClips() const { return v_AvailableClips; }
 		void TransitionToAnimation(const size_t animIndex, float transitionTime, TransitionType transitionType);
+		const Clip* GetClip(const size_t animIndex) const;
 		const gef::Matrix44& GetMeshTransform();
 		void SetMeshTransform(const gef::Matrix44& transform);
 		const std::string& GetFileName();
@@ -45,15 +46,12 @@ namespace AsdfAnim
 		const float& GetBodyVelocity() { return m_BodyVelociy; }
 
 		void InitBlendTree();
+		BlendTree* GetBlendTree() const { return p_BlendTree; }
 
 	private:
 		gef::Scene* p_Scene;
 		gef::Mesh* p_Mesh;
 		gef::SkinnedMeshInstance* p_MeshInstance;
-		struct Clip {
-			gef::Animation* clip;
-			ClipType type;
-		};
 		std::vector<Clip> v_Clips;
 		std::vector<std::string> v_AvailableClips;
 		Clip* p_CurrentAnimation;

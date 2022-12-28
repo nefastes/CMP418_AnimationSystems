@@ -1,6 +1,6 @@
 #include "BlendNode.h"
 #include "animation/animation.h"
-BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_BindPose(bindPose), m_BlendedPose(bindPose)
+BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_BindPose(bindPose), m_BlendedPose(bindPose), m_Type(NodeType_::NodeType_Undefined)
 {
 }
 
@@ -46,6 +46,7 @@ const gef::SkeletonPose& BlendNode::GetPose()
 /// <param name="bindPose"></param>
 OutputNode::OutputNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose)
 {
+	m_Type = NodeType_::NodeType_Output;
 }
 
 bool OutputNode::ProcessData(float frameTime)
@@ -62,6 +63,7 @@ bool OutputNode::ProcessData(float frameTime)
 /// <param name="bindPose"></param>
 ClipNode::ClipNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose), m_AnimationTime(0.f), m_ClipPlaybackSpeed(1.f), m_ClipLooping(true), p_Clip(nullptr)
 {
+	m_Type = NodeType_::NodeType_Clip;
 }
 
 bool ClipNode::ProcessData(float frameTime)
@@ -70,30 +72,31 @@ bool ClipNode::ProcessData(float frameTime)
 
 	if (p_Clip)
 	{
+		gef::Animation* gefClip = p_Clip->clip;
 		// update the animation playback time
 		m_AnimationTime += frameTime * m_ClipPlaybackSpeed;
 
 		// check to see if the playback has reached the end of the animation
-		if (m_AnimationTime > p_Clip->duration())
+		if (m_AnimationTime > gefClip->duration())
 		{
 			// if the animation is looping then wrap the playback time round to the beginning of the animation
 			// other wise set the playback time to the end of the animation and flag that we have reached the end
 			if (m_ClipLooping)
-				m_AnimationTime = std::fmodf(m_AnimationTime, p_Clip->duration());
+				m_AnimationTime = std::fmodf(m_AnimationTime, gefClip->duration());
 			else
 			{
-				m_AnimationTime = p_Clip->duration();
+				m_AnimationTime = gefClip->duration();
 				finished = true;
 			}
 		}
 
 		// add the clip start time to the playback time to calculate the final time
 		// that will be used to sample the animation data
-		float time = m_AnimationTime + p_Clip->start_time();
+		float time = m_AnimationTime + gefClip->start_time();
 
 		// sample the animation data at the calculated time
 		// any bones that don't have animation data are set to the bind pose
-		m_BlendedPose.SetPoseFromAnim(*p_Clip, r_BindPose, time);
+		m_BlendedPose.SetPoseFromAnim(*gefClip, r_BindPose, time);
 	}
 	else
 	{
@@ -114,7 +117,7 @@ void ClipNode::SetLooping(bool loop)
 {
 	m_ClipLooping = loop;
 }
-void ClipNode::SetClip(const gef::Animation* clip)
+void ClipNode::SetClip(const AsdfAnim::Clip* clip)
 {
 	p_Clip = clip;
 }
@@ -126,7 +129,7 @@ bool ClipNode::IsLooping()
 {
 	return m_ClipLooping;
 }
-const gef::Animation* ClipNode::GetClip()
+const AsdfAnim::Clip* ClipNode::GetClip()
 {
 	return p_Clip;
 }
@@ -135,23 +138,29 @@ const gef::Animation* ClipNode::GetClip()
 /// Linear Blend
 /// </summary>
 /// <param name="bindPose"></param>
-LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose), p_BlendValue(nullptr)
+LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(bindPose), m_BlendValue(0.f)
 {
+	m_Type = NodeType_::NodeType_LinearBlend;
 }
 
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	if (!p_BlendValue || !a_Inputs[0] || !a_Inputs[1])
+	if (!a_Inputs[0] || !a_Inputs[1])
 		return false;
 
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), *p_BlendValue);
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 	return true;
 }
 
-void LinearBlendNode::SetBlendValuePtr(float* pBlendVal)
+void LinearBlendNode::SetBlendValue(float pBlendVal)
 {
-	p_BlendValue = pBlendVal;
+	m_BlendValue = pBlendVal;
+}
+
+float* LinearBlendNode::GetBlendValue()
+{
+	return &m_BlendValue;
 }
 
 /// <summary>
@@ -161,24 +170,25 @@ void LinearBlendNode::SetBlendValuePtr(float* pBlendVal)
 /// <param name="bindPose"></param>
 LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : LinearBlendNode(bindPose)
 {
+	m_Type = NodeType_::NodeType_LinearBlendSync;
 }
 
 bool LinearBlendNodeSync::ProcessData(float frameTime)
 {
 	// Scale the two input clips to be the same lengh
-	if (!p_BlendValue || !a_Inputs[0] || !a_Inputs[1])
+	if (!a_Inputs[0] || !a_Inputs[1])
 		return false;
 
 	ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 
-	float duration1 = input1->GetClip()->duration() / input2->GetClip()->duration() - 1.f;
-	float duration2 = 1.f - input2->GetClip()->duration() / input1->GetClip()->duration();
+	float duration1 = input1->GetClip()->clip->duration() / input2->GetClip()->clip->duration() - 1.f;
+	float duration2 = 1.f - input2->GetClip()->clip->duration() / input1->GetClip()->clip->duration();
 
-	input1->SetPlaybackSpeed(duration1 * *p_BlendValue);
-	input2->SetPlaybackSpeed(duration2 * *p_BlendValue);
+	input1->SetPlaybackSpeed(duration1 * m_BlendValue);
+	input2->SetPlaybackSpeed(duration2 * m_BlendValue);
 
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), *p_BlendValue);
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 
 	return LinearBlendNode::ProcessData(frameTime);
 }
@@ -216,9 +226,10 @@ uint32_t BlendTree::AddNode(NodeType_ type)
 {
 	switch (type)
 	{
-	case NodeType_::NodeType_Output:		v_Tree.push_back(new OutputNode(m_BindPose));		break;
-	case NodeType_::NodeType_Clip:			v_Tree.push_back(new ClipNode(m_BindPose));			break;
-	case NodeType_::NodeType_LinearBlend:	v_Tree.push_back(new LinearBlendNode(m_BindPose));	break;
+	case NodeType_::NodeType_Output:			v_Tree.push_back(new OutputNode(m_BindPose));			break;
+	case NodeType_::NodeType_Clip:				v_Tree.push_back(new ClipNode(m_BindPose));				break;
+	case NodeType_::NodeType_LinearBlend:		v_Tree.push_back(new LinearBlendNode(m_BindPose));		break;
+	case NodeType_::NodeType_LinearBlendSync:	v_Tree.push_back(new LinearBlendNodeSync(m_BindPose));	break;
 	default:
 		return UINT32_MAX;
 	}

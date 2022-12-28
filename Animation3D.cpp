@@ -91,19 +91,21 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         {
             //Determine the type of this clip if possible
             ClipType clipType = ClipType::Clip_Type_Undefined;
+            std::string name;
             //Brut force, very bad
-            if(animationFile.string().find("idle", s_Filename.size() + 1) != std::string::npos)             clipType = ClipType::Clip_Type_Idle;
-            else if(animationFile.string().find("walking", s_Filename.size() + 1) != std::string::npos)     clipType = ClipType::Clip_Type_Walk;
-            else if(animationFile.string().find("walk", s_Filename.size() + 1) != std::string::npos)        clipType = ClipType::Clip_Type_Walk;
-            else if(animationFile.string().find("running", s_Filename.size() + 1) != std::string::npos)     clipType = ClipType::Clip_Type_Run;
-            else if(animationFile.string().find("run", s_Filename.size() + 1) != std::string::npos)         clipType = ClipType::Clip_Type_Run;
-            else if(animationFile.string().find("jump", s_Filename.size() + 1) != std::string::npos)        clipType = ClipType::Clip_Type_Jump;
-            else if(animationFile.string().find("fall", s_Filename.size() + 1) != std::string::npos)        clipType = ClipType::Clip_Type_Fall;
+            if(animationFile.string().find("idle", s_Filename.size() + 1) != std::string::npos)         {   clipType = ClipType::Clip_Type_Idle;    name = "idle";     }
+            else if(animationFile.string().find("walking", s_Filename.size() + 1) != std::string::npos) {   clipType = ClipType::Clip_Type_Walk;    name = "walking";  }
+            else if(animationFile.string().find("walk", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Walk;    name = "walk";     }
+            else if(animationFile.string().find("running", s_Filename.size() + 1) != std::string::npos) {   clipType = ClipType::Clip_Type_Run;     name = "running";  }
+            else if(animationFile.string().find("run", s_Filename.size() + 1) != std::string::npos)     {   clipType = ClipType::Clip_Type_Run;     name = "run";      }
+            else if(animationFile.string().find("jump", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Jump;    name = "jump";     }
+            else if(animationFile.string().find("fall", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Fall;    name = "fall";     }
 
             // Create a new clip
             Clip clip{
                 new gef::Animation(std::move(*animIterator.second)),
-                clipType
+                clipType,
+                name
             };
             v_Clips.push_back(std::move(clip));
             //v_AvailableAnimations.push_back(tempScene.string_id_table.table().at(animIterator.first));    // This won't work cause the gef loader only saves one animation
@@ -119,12 +121,12 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
     p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
     uint32_t idleNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
     ClipNode* idleNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(idleNodeID));
-    idleNode->SetClip(p_CurrentAnimation->clip);
-    if (v_Clips.size() > 2)
+    idleNode->SetClip(p_CurrentAnimation);
+    if (v_Clips.size() > 3)
     {
         uint32_t walkNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
         ClipNode* walkNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(walkNodeID));
-        walkNode->SetClip(v_Clips[2].clip);
+        walkNode->SetClip(&v_Clips[3]);
 
         m_TestBlendNodeID = p_BlendTree->AddNode(NodeType_::NodeType_LinearBlend);
         p_BlendTree->ConnectNodes(idleNodeID, walkNodeID, m_TestBlendNodeID);
@@ -194,11 +196,6 @@ void AsdfAnim::Animation3D::Update(float frameTime)
     //// Store the result into the mesh bone matrices so they can be supplied to the shader
     //p_MeshInstance->UpdateBoneMatrices(m_Activeplayer->pose());
 
-    if (m_TestBlendNodeID < UINT32_MAX)
-    {
-        float interpolationFactor = 1.f;
-        reinterpret_cast<LinearBlendNode*>(p_BlendTree->GetNode(m_TestBlendNodeID))->SetBlendValuePtr(&interpolationFactor);
-    }
     p_BlendTree->Update(frameTime);
     p_MeshInstance->UpdateBoneMatrices(p_BlendTree->GetOutputPose());
 }
@@ -220,6 +217,11 @@ void AsdfAnim::Animation3D::TransitionToAnimation(const size_t animIndex, float 
     p_CurrentAnimation = &v_Clips[animIndex];
     m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_clip(p_CurrentAnimation->clip);
     m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_anim_time(0.f);
+}
+
+const AsdfAnim::Clip * AsdfAnim::Animation3D::GetClip(const size_t animIndex) const
+{
+    return &v_Clips[animIndex];
 }
 
 const gef::Matrix44& AsdfAnim::Animation3D::GetMeshTransform()

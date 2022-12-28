@@ -1,4 +1,9 @@
 #pragma once
+namespace gef
+{
+	class Animation;
+}
+
 namespace AsdfAnim
 {
 	enum class AnimationType {
@@ -21,6 +26,12 @@ namespace AsdfAnim
 		Transition_Type_Undefined = 0,
 		Transition_Type_Frozen,
 		Transition_Type_Smooth
+	};
+
+	struct Clip {
+		gef::Animation* clip;
+		ClipType type;
+		std::string name;
 	};
 
 	class Animation

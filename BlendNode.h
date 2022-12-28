@@ -2,6 +2,16 @@
 #include <stdint.h>
 #include <array>
 #include "animation/skeleton.h"
+#include "Animation.h"
+enum class NodeType_
+{
+	NodeType_Undefined = -1,
+	NodeType_Output,
+	NodeType_Clip,
+	NodeType_LinearBlend,
+	NodeType_LinearBlendSync
+};
+
 class BlendNode
 {
 public:
@@ -12,11 +22,13 @@ public:
 	bool Update(float frameTime);
 	virtual bool ProcessData(float frameTime) = 0;
 	const gef::SkeletonPose& GetPose();
+	const NodeType_& GetType() const { return m_Type; }
 
 protected:
 	std::array<BlendNode*, 4> a_Inputs; // Shouldnt need more than 4 inputs
 	const gef::SkeletonPose& r_BindPose;
 	gef::SkeletonPose m_BlendedPose;
+	NodeType_ m_Type;
 };
 
 struct OutputNode : public BlendNode
@@ -32,16 +44,16 @@ public:
 	bool ProcessData(float frameTime) final override;
 	void SetPlaybackSpeed(float speed);
 	void SetLooping(bool loop);
-	void SetClip(const gef::Animation* clip);
+	void SetClip(const AsdfAnim::Clip* clip);
 	float GetPlaybackSpeed();
 	bool IsLooping();
-	const gef::Animation* GetClip();
+	const AsdfAnim::Clip* GetClip();
 
 private:
 	float m_AnimationTime;
 	float m_ClipPlaybackSpeed;
 	bool m_ClipLooping;
-	const gef::Animation* p_Clip;
+	const AsdfAnim::Clip* p_Clip;
 };
 
 class LinearBlendNode : public BlendNode
@@ -49,10 +61,11 @@ class LinearBlendNode : public BlendNode
 public:
 	LinearBlendNode(const gef::SkeletonPose& bindPose);
 	bool ProcessData(float frameTime) override;
-	void SetBlendValuePtr(float* pBlendVal);
+	void SetBlendValue(float pBlendVal);
+	float* GetBlendValue();
 
 protected:
-	float* p_BlendValue;
+	float m_BlendValue;
 };
 
 class LinearBlendNodeSync : public LinearBlendNode
@@ -63,14 +76,6 @@ public:
 
 private:
 
-};
-
-enum class NodeType_
-{
-	NodeType_Undefined = -1,
-	NodeType_Output,
-	NodeType_Clip,
-	NodeType_LinearBlend
 };
 
 class BlendTree
@@ -89,6 +94,8 @@ public:
 	void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID);
 
 	void Update(float frameTime);
+
+	const std::vector<BlendNode*>& GetTree() const { return v_Tree; }
 
 private:
 	const gef::SkeletonPose& m_BindPose;
