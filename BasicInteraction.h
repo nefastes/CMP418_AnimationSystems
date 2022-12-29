@@ -4,12 +4,58 @@
 # include "node-editor\application.h"
 #include "Animation3D.h"
 #include <unordered_map>
+#include <functional>
+#include <array>
 
 namespace ed = ax::NodeEditor;
 
 struct BasicInteractionExample :
     public Application
 {
+    struct UINode
+    {
+        BlendNode* animationNode;
+        ed::NodeId nodeID;
+        std::array<ed::PinId, 4> inputPinIDs;
+        std::array<bool, 4> usedInputPinIDs;
+        ed::PinId outputPinID;
+        std::function<void(UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim)> Draw;
+    };
+
+    UINode* FindUINodeFromAnimationNode(BlendNode* const& itemToSearch)
+    {
+        // TERRIBLE way of doing this
+        // but since this will be used for relatively small lookups (4 - 5 items in v_Nodes and 4 calls max)
+        // it will do for now
+        for (UINode& uiNode : v_Nodes)
+            if (uiNode.animationNode == itemToSearch)
+                return &uiNode;
+        return nullptr;
+    }
+
+    UINode* FindUINodeFromOutputPinID(const ed::PinId& itemToSearch)
+    {
+        // TERRIBLE way of doing this
+        // but since this will be used for relatively small lookups (4 - 5 items in v_Nodes and 4 calls max)
+        // it will do for now
+        for (UINode& uiNode : v_Nodes)
+            if (uiNode.outputPinID == itemToSearch)
+                return &uiNode;
+        return nullptr;
+    }
+
+    UINode* FindUINodeFromInputPinID(const ed::PinId& itemToSearch)
+    {
+        // TERRIBLE way of doing this
+        // but since this will be used for relatively small lookups (4 - 5 items in v_Nodes and 4 calls max)
+        // it will do for now
+        for (UINode& uiNode : v_Nodes)
+            for(const ed::PinId& id : uiNode.inputPinIDs)
+                if (id == itemToSearch)
+                    return &uiNode;
+        return nullptr;
+    }
+
     // Struct to hold basic information about connection between
     // pins. Note that connection (aka. link) has its own ID.
     // This is useful later with dealing with selections, deletion
@@ -17,16 +63,10 @@ struct BasicInteractionExample :
     struct LinkInfo
     {
         ed::LinkId Id;
-        ed::PinId  InputId;
-        ed::PinId  OutputId;
-        BlendNode* nodeWithInput;
-        BlendNode* nodeWithOutput;
-    };
-
-    struct BuildLinkInfo
-    {
-        std::vector<ed::PinId> inputs;
-        ed::PinId output;
+        ed::PinId  startPinId;
+        ed::PinId  endPinId;
+        UINode* nodeWithInputPin;
+        UINode* nodeWithOutputPin;
     };
 
     using Application::Application;
@@ -43,28 +83,191 @@ struct BasicInteractionExample :
         ed::DestroyEditor(m_Context);
     }
 
-    void ImGuiEx_BeginColumn()
-    {
-        ImGui::BeginGroup();
-    }
-
-    void ImGuiEx_NextColumn()
-    {
-        ImGui::EndGroup();
-        ImGui::SameLine();
-        ImGui::BeginGroup();
-    }
-
-    void ImGuiEx_EndColumn()
-    {
-        ImGui::EndGroup();
-    }
-
     void ResetFor(AsdfAnim::Animation3D* anim)
     {
+        // Check if the logic wasn't already set for this animation
         if (p_SentAnim == anim) return;
+
         p_SentAnim = anim;
         m_Links.clear();
+        v_Nodes.clear();
+
+        // Build the nodes from the blend tree
+        uintptr_t uniqueId = 1;
+        const std::vector<BlendNode*>& treeToDraw = p_SentAnim->GetBlendTree()->GetTree();
+        for (size_t i = 0u; i < treeToDraw.size(); ++i)
+        {
+            UINode currentNode = {
+                treeToDraw[i],
+                uniqueId++,
+                {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                {false, false, false, false},
+                uniqueId++,
+                0
+            };
+    
+            switch (currentNode.animationNode->GetType())
+            {
+            case NodeType_::NodeType_Output:
+                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                    ed::BeginNode(thisPtr->nodeID);
+                    ImGui::Text("Output Node");
+                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                    ImGui::Text("-> In");
+                    ed::EndPin();
+                    ed::EndNode();
+                };
+                break;
+            case NodeType_::NodeType_Clip:
+            {
+                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                    ed::BeginNode(thisPtr->nodeID);
+                    ImGui::Text("Clip Node");
+                    ImGui::BeginGroup();
+                    ImGui::PushItemWidth(200);
+
+                    const std::vector<std::string>& availableAnims = sentAnim->AvailableClips();
+                    ClipNode* clipNode = reinterpret_cast<ClipNode*>(thisPtr->animationNode);
+                    const char* clipName = clipNode->GetClip()->name.c_str();
+
+                    ImGui::Text("Clip:");
+                    ImGui::SameLine();
+                    if (ImGui::Button(clipName))
+                        ImGui::OpenPopup("clip");
+
+                    ImGui::PopItemWidth();
+
+                    ImGui::EndGroup();
+                    ImGui::SameLine();      // Next column
+                    ImGui::BeginGroup();
+                    
+                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                    ImGui::Text("Out ->");
+                    ed::EndPin();
+                    ImGui::EndGroup();
+                    ed::EndNode();
+
+                    // This is the actual popup Gui drawing section.
+                    ed::Suspend();
+                    if (ImGui::BeginPopup("clip")) {
+                        // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
+                        ImGui::TextDisabled("Pick One:");
+                        ImGui::BeginChild("popup_scroller", ImVec2(200, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                        for (size_t j = 0u; j < availableAnims.size(); ++j)
+                        {
+                            if (ImGui::Button(availableAnims[j].c_str())) {
+                                clipNode->SetClip(sentAnim->GetClip(j));
+                                ImGui::CloseCurrentPopup();
+                            }
+                        }
+                        ImGui::EndChild();
+                        ImGui::EndPopup();
+                    }
+                    ed::Resume();
+                };
+                
+            }
+            break;
+            case NodeType_::NodeType_LinearBlend:
+                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                    ed::BeginNode(thisPtr->nodeID);
+                    ImGui::Text("Linear Blend");
+                    ImGui::BeginGroup();
+                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                    ImGui::Text("-> In1");
+                    ed::EndPin();
+                    ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
+                    ImGui::Text("-> In2");
+                    ed::EndPin();
+
+                    LinearBlendNode* blendNode = reinterpret_cast<LinearBlendNode*>(thisPtr->animationNode);
+                    ImGui::PushItemWidth(200);
+                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+                    ImGui::PopItemWidth();
+
+                    ImGui::EndGroup();
+                    ImGui::SameLine();
+                    ImGui::BeginGroup();
+
+                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                    ImGui::Text("Out ->");
+                    ed::EndPin();
+                    ImGui::EndGroup();
+                    ed::EndNode();
+                };
+            break;
+            case NodeType_::NodeType_LinearBlendSync:
+                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                    ed::BeginNode(thisPtr->nodeID);
+                    ImGui::Text("Linear Blend Sync");
+                    ImGui::BeginGroup();
+                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                    ImGui::Text("-> In1");
+                    ed::EndPin();
+                    ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
+                    ImGui::Text("-> In2");
+                    ed::EndPin();
+
+                    LinearBlendNodeSync* blendNode = reinterpret_cast<LinearBlendNodeSync*>(thisPtr->animationNode);
+                    ImGui::PushItemWidth(200);
+                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+                    ImGui::PopItemWidth();
+
+                    ImGui::EndGroup();
+                    ImGui::SameLine();
+                    ImGui::BeginGroup();
+
+                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                    ImGui::Text("Out ->");
+                    ed::EndPin();
+                    ImGui::EndGroup();
+                    ed::EndNode();
+                };
+            break;
+            default:
+                break;
+            }
+
+            // Add the node
+            v_Nodes.push_back(std::move(currentNode));
+        }
+
+        // Build the received links
+        for (BlendNode* const& node : treeToDraw)
+        {
+            const std::array<BlendNode*, 4>& nodeInputs = node->GetInputs();
+            for (uint8_t i = 0u; i < nodeInputs.size(); ++i)
+            {
+                BlendNode* const& input = nodeInputs[i];
+                if (!input) continue;
+
+                UINode* endNode = FindUINodeFromAnimationNode(node);        // This node receives the link in one of its input slots
+                UINode* startNode = FindUINodeFromAnimationNode(input);     // This node starts the link from its output slot
+                assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
+
+                // Check if no link exist with this output
+                for (const auto& link : m_Links)
+                {
+                    // If the node with the output is the same as the start (i.e. the node with output in this link), terminate
+                    if (link.nodeWithOutputPin == startNode) return;
+                }
+
+                ed::PinId startPinID, endPinID;
+                // The link starts at the output of the start node
+                startPinID = startNode->outputPinID;
+
+                // The link should end at the current "i" spot. In other words, the position of the input in the nodeInputs array
+                // needs to correspond to where the link ends on the node inputs
+                // For example, if the input is in slot 3 of the nodeInputs array, it should be linked to the third input of the UI node
+                // If the inputs slot of the UINode was already used then there is a logic error
+                assert(!endNode->usedInputPinIDs[i]);
+                endPinID = endNode->inputPinIDs[i];
+                endNode->usedInputPinIDs[i] = true;
+
+                // Add the link
+                m_Links.push_back({ ed::LinkId(m_NextLinkId++), startPinID, endPinID, endNode, startNode });
+            }
+        }
     }
 
     void OnFrame(float deltaTime) override
@@ -80,182 +283,20 @@ struct BasicInteractionExample :
         // Start interaction with editor.
         ed::Begin("My Editor", ImVec2(0.0, 0.0f));
 
-        int uniqueId = 1;
-
-        // This map will store each node's available inputs
-        // The key is the pointer of the node of interest
-        // This makes lookup easy based on BlendNode.h
-        std::unordered_map<BlendNode*, BuildLinkInfo> map_BuildLinkInfo;
-        std::unordered_map<uintptr_t, BlendNode*> map_PinToBlendnode;
-
         //
         // 1) Commit known data to editor
         //
-
-        // Draw the nodes from the blend tree
-        const std::vector<BlendNode*>& treeToDraw = p_SentAnim->GetBlendTree()->GetTree();
-        for (size_t i = 0u; i < treeToDraw.size(); ++i)
+        for(uint32_t i = 0u; i < v_Nodes.size(); ++i)
         {
+            UINode& node = v_Nodes[i];
             ImGui::PushID(i);
-            // Draw a UI node for each blendtree node
-            // Use different patterns based on their types
-            ed::NodeId node_Id = uniqueId++;
-            ed::PinId  node_InputPinId = uniqueId++;
-            ed::PinId  node_OutputPinId = uniqueId++;
-
-            BlendNode* node = treeToDraw[i];
-            map_BuildLinkInfo.insert({ node, { {node_InputPinId}, node_OutputPinId } });
-            map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId, node });
-            map_PinToBlendnode.insert({ (uintptr_t)node_OutputPinId, node });
-            switch (node->GetType())
-            {
-            case NodeType_::NodeType_Output:
-                ed::BeginNode(node_Id);
-                ImGui::Text("Output Node");
-                ed::BeginPin(node_InputPinId, ed::PinKind::Input);
-                ImGui::Text("-> In");
-                ed::EndPin();
-                ed::EndNode();
-                break;
-            case NodeType_::NodeType_Clip:
-                {
-                    ed::BeginNode(node_Id);
-                    ImGui::Text("Clip Node");
-                    ImGuiEx_BeginColumn();
-                    ImGui::PushItemWidth(200);
-
-                    const std::vector<std::string>& availableAnims = p_SentAnim->AvailableClips();
-                    ClipNode* clipNode = reinterpret_cast<ClipNode*>(node);
-                    const char* clipName = clipNode->GetClip()->name.c_str();
-
-                    ImGui::Text("Clip:");
-                    ImGui::SameLine();
-                    if (ImGui::Button(clipName))
-                        ImGui::OpenPopup("clip");
-                    
-                    ImGui::PopItemWidth();
-                    ImGuiEx_NextColumn();
-                    ed::BeginPin(node_OutputPinId, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGuiEx_EndColumn();
-                    ed::EndNode();
-
-                    // This is the actual popup Gui drawing section.
-                    ed::Suspend();
-                    if (ImGui::BeginPopup("clip")) {
-                        // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
-                        ImGui::TextDisabled("Pick One:");
-                        ImGui::BeginChild("popup_scroller", ImVec2(200, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        for (size_t j = 0u; j < availableAnims.size(); ++j)
-                        {
-                            if (ImGui::Button(availableAnims[j].c_str())) {
-                                clipNode->SetClip(p_SentAnim->GetClip(j));
-                                ImGui::CloseCurrentPopup();
-                            }
-                        }
-                        ImGui::EndChild();
-                        ImGui::EndPopup();
-                    }
-                    ed::Resume();
-                }
-                break;
-            case NodeType_::NodeType_LinearBlend:
-                {
-                    // There is a second input
-                    ed::PinId  node_InputPinId2 = uniqueId++;
-                    map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
-                    map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId2, node });
-
-                    ed::BeginNode(node_Id);
-                    ImGui::Text("Linear Blend");
-                    ImGuiEx_BeginColumn();
-                    ed::BeginPin(node_InputPinId, ed::PinKind::Input);
-                    ImGui::Text("-> In1");
-                    ed::EndPin();
-                    ed::BeginPin(node_InputPinId2, ed::PinKind::Input);
-                    ImGui::Text("-> In2");
-                    ed::EndPin();
-
-                    LinearBlendNode* blendNode = reinterpret_cast<LinearBlendNode*>(node);
-                    ImGui::PushItemWidth(200);
-                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
-                    ImGui::PopItemWidth();
-
-                    ImGuiEx_NextColumn();
-                    ed::BeginPin(node_OutputPinId, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGuiEx_EndColumn();
-                    ed::EndNode();
-                }
-                break;
-            case NodeType_::NodeType_LinearBlendSync:
-                {
-                    // There is a second input
-                    ed::PinId  node_InputPinId2 = uniqueId++;
-                    map_BuildLinkInfo[node].inputs.push_back(node_InputPinId2);
-                    map_PinToBlendnode.insert({ (uintptr_t)node_InputPinId2, node });
-
-                    ed::BeginNode(node_Id);
-                    ImGui::Text("Linear Blend Sync");
-                    ImGuiEx_BeginColumn();
-                    ed::BeginPin(node_InputPinId, ed::PinKind::Input);
-                    ImGui::Text("-> In1");
-                    ed::EndPin();
-                    ed::BeginPin(node_InputPinId2, ed::PinKind::Input);
-                    ImGui::Text("-> In2");
-                    ed::EndPin();
-
-                    LinearBlendNodeSync* blendNode = reinterpret_cast<LinearBlendNodeSync*>(node);
-                    ImGui::PushItemWidth(200);
-                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
-                    ImGui::PopItemWidth();
-
-                    ImGuiEx_NextColumn();
-                    ed::BeginPin(node_OutputPinId, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGuiEx_EndColumn();
-                    ed::EndNode();
-                }
-                break;
-            default:
-                break;
-            }
+            node.Draw(&node, p_SentAnim);
             ImGui::PopID();
         }
 
-        // Link the nodes from the blend tree
-        for (const auto& node : treeToDraw)
-        {
-            const std::array<BlendNode*, 4>& nodeInputs = node->GetInputs();
-            for (const auto& input : nodeInputs)
-            {
-                if (!input) continue;
-
-                ed::PinId inputID, outputID;
-
-                outputID = map_BuildLinkInfo[node].inputs.back();
-                inputID = map_BuildLinkInfo[input].output;
-                map_BuildLinkInfo[node].inputs.pop_back();
-
-                // Check if no link exist with this output
-                bool linkExists = false;
-                for (const auto& link : m_Links)
-                {
-                    linkExists = link.OutputId == outputID;
-                    if (linkExists) break;
-                }
-
-                if(!linkExists)
-                    m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputID, outputID, node, input });
-            }
-        }
-
-        // Submit Links
+        // Draw Links
         for (auto& linkInfo : m_Links)
-            ed::Link(linkInfo.Id, linkInfo.InputId, linkInfo.OutputId);
+            ed::Link(linkInfo.Id, linkInfo.startPinId, linkInfo.endPinId);
 
         //
         // 2) Handle interactions
@@ -264,8 +305,8 @@ struct BasicInteractionExample :
         // Handle creation action, returns true if editor want to create new object (node or link)
         if (ed::BeginCreate())
         {
-            ed::PinId inputPinId, outputPinId;
-            if (ed::QueryNewLink(&inputPinId, &outputPinId))
+            ed::PinId startPinId, endPinId;
+            if (ed::QueryNewLink(&startPinId, &endPinId))
             {
                 // QueryNewLink returns true if editor want to create new link between pins.
                 //
@@ -279,26 +320,43 @@ struct BasicInteractionExample :
                 //   * input invalid, output valid - user started to drag new ling from output pin
                 //   * input valid, output valid   - user dragged link over other pin, can be validated
 
-                if (inputPinId && outputPinId) // both are valid, let's accept link
+                if (startPinId && endPinId) // both are valid, let's accept link
                 {
                     // ed::AcceptNewItem() return true when user release mouse button.
                     if (ed::AcceptNewItem())
                     {
                         // Connect blendnodes
-                        BlendNode* nodeWithInput = map_PinToBlendnode[(uintptr_t)outputPinId];  // This is the node with the connected input slot
-                        BlendNode* nodeWithOutput = map_PinToBlendnode[(uintptr_t)inputPinId];  // This is the node with the output slot
-                        nodeWithInput->AddInput(nodeWithOutput);
+                        UINode* startNode = FindUINodeFromOutputPinID(startPinId);  // This node receives the link in one of its input slots
+                        UINode* endNode = FindUINodeFromInputPinID(endPinId);       // This node starts the link from its output slot
+                        assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
+
+                        for(uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
+                            if (!endNode->usedInputPinIDs[i])
+                            {
+                                endNode->animationNode->SetInput(i, startNode->animationNode); // Link the two nodes
+                                endNode->usedInputPinIDs[i] = true;
+                                break;
+                            }
+
 
                         // Since we accepted new link, lets add one to our list of links.
-                        m_Links.push_back({ ed::LinkId(m_NextLinkId++), inputPinId, outputPinId, nodeWithInput, nodeWithOutput });
+                        m_Links.push_back({ ed::LinkId(m_NextLinkId++), startPinId, endPinId, endNode, startNode });
 
                         // Draw new link.
-                        ed::Link(m_Links.back().Id, m_Links.back().InputId, m_Links.back().OutputId);
+                        ed::Link(m_Links.back().Id, m_Links.back().startPinId, m_Links.back().endPinId);
                     }
 
                     // You may choose to reject connection between these nodes
                     // by calling ed::RejectNewItem(). This will allow editor to give
                     // visual feedback by changing link thickness and color.
+                }
+                else if (startPinId)
+                {
+
+                }
+                else if (endPinId)
+                {
+
                 }
             }
         }
@@ -320,8 +378,21 @@ struct BasicInteractionExample :
                     {
                         if (link.Id == deletedLinkId)
                         {
+                            // Remove animation input
+                            link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
+
+                            // Free input slot
+                            for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
+                            {
+                                if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
+                                {
+                                    link.nodeWithInputPin->usedInputPinIDs[i] = false;
+                                    break;
+                                }
+                            }
+
+                            // Delete link
                             m_Links.erase(&link);
-                            link.nodeWithInput->RemoveInput(link.nodeWithOutput);
                             break;
                         }
                     }
@@ -353,4 +424,5 @@ struct BasicInteractionExample :
     ImVector<LinkInfo>      m_Links;                // List of live links. It is dynamic unless you want to create read-only view over nodes.
     int                     m_NextLinkId = 100;     // Counter to help generate link ids. In real application this will probably based on pointer to user data structure.
     AsdfAnim::Animation3D*  p_SentAnim = nullptr;
+    std::vector<UINode>     v_Nodes;
 };

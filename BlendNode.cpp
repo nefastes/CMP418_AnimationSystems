@@ -73,6 +73,8 @@ bool OutputNode::ProcessData(float frameTime)
 {
 	// Pass the input pose as the final output pose
 	// This node should only have one input
+	if (!a_Inputs[0]) return false;
+
 	m_BlendedPose = a_Inputs[0]->GetPose();
 	return true;
 }
@@ -166,7 +168,7 @@ LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	if (!a_Inputs[0] || !a_Inputs[1])		return false;
+	if (!a_Inputs[0] && !a_Inputs[1])		return false;
 	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
 	else									m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
@@ -196,7 +198,7 @@ LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : Li
 bool LinearBlendNodeSync::ProcessData(float frameTime)
 {
 	// Scale the two input clips to be the same lengh
-	if (!a_Inputs[0] || !a_Inputs[1])		return false;
+	if (!a_Inputs[0] && !a_Inputs[1])		return false;
 	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
 	else
