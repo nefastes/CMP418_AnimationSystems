@@ -56,6 +56,17 @@ struct BasicInteractionExample :
         return nullptr;
     }
 
+    UINode* FindUINodeFromNodeID(const ed::NodeId& itemToSearch)
+    {
+        // TERRIBLE way of doing this
+        // but since this will be used for relatively small lookups (4 - 5 items in v_Nodes and 4 calls max)
+        // it will do for now
+        for (UINode& uiNode : v_Nodes)
+            if (uiNode.nodeID == itemToSearch)
+                return &uiNode;
+        return nullptr;
+    }
+
     // Struct to hold basic information about connection between
     // pins. Note that connection (aka. link) has its own ID.
     // This is useful later with dealing with selections, deletion
@@ -290,6 +301,7 @@ struct BasicInteractionExample :
         //
         // 1) Commit known data to editor
         //
+
         for(uint32_t i = 0u; i < v_Nodes.size(); ++i)
         {
             UINode& node = v_Nodes[i];
@@ -408,7 +420,93 @@ struct BasicInteractionExample :
         }
         ed::EndDelete(); // Wrap up deletion action
 
+        // Handle node creation
+        ed::Suspend();
+        static ed::NodeId tempNodeID = NULL;
+        if (ed::ShowBackgroundContextMenu())
+            ImGui::OpenPopup("NCM");
+        else if (ed::ShowNodeContextMenu(&tempNodeID))
+            ImGui::OpenPopup("NDM");
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+        if (ImGui::BeginPopup("NCM")) // Node Creation Menu (less characters)
+        {
+            if (ImGui::MenuItem("Clip Node"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::MenuItem("Linear Blend Node"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::MenuItem("Linear Blend Node Synchornised"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            if (ImGui::MenuItem("Ragdoll Node"))
+            {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginPopup("NDM")) // Node Deletion Menu (less characters)
+        {
+            assert(tempNodeID); // If this popup is opened without a nodeID there is a logic error
+            UINode* node = FindUINodeFromNodeID(tempNodeID);
 
+            // Do not allow to delete the output node
+            const bool isOutputNode = node->animationNode->GetType() == NodeType_::NodeType_Output;
+            if (isOutputNode)
+                ImGui::Text("The output node cannot be deleted!");
+            else if (ImGui::MenuItem("Delete Node"))
+            {
+                // Remove any link with this node
+                // Find any link with a start ID that corresponds to this node's output ID
+                // Find any link with an end ID that corresponds to any of this node's input IDs
+                for (uint32_t i = 0u; i < m_Links.size(); ++i)
+                {
+                    LinkInfo& link = m_Links[i];
+                    // Do not break if a link is found as there might be more
+                    if (link.startPinId == node->outputPinID)
+                    {
+                        // This node was the input of another node, so remove the input as this node will be deleted
+                        link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
+                        // Free input slot
+                        for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
+                        {
+                            if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
+                            {
+                                link.nodeWithInputPin->usedInputPinIDs[i] = false;
+                                break;
+                            }
+                        }
+                        m_Links.erase(&link); // This messes up the vector, need to reset i
+                        --i;
+                    }
+                    for(const ed::PinId& inputPinID : node->inputPinIDs)
+                        if (link.endPinId == inputPinID)
+                        {
+                            m_Links.erase(&link);
+                            --i;
+                            break;
+                        }
+                }
+
+                // Remove the node
+                p_SentAnim->GetBlendTree()->RemoveAndFreeNode(node->animationNode);
+                // TODO: Replace with ImVector and use v_Node.erase(node);
+                for (auto it = v_Nodes.begin(); it != v_Nodes.end(); ++it)
+                    if (&*it == node)
+                    {
+                        v_Nodes.erase(it);
+                        break;
+                    }
+
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopStyleVar();
+        ed::Resume();
 
         // End of interaction with editor.
         ed::End();

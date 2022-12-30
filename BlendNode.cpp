@@ -261,6 +261,19 @@ uint32_t BlendTree::AddNode(NodeType_ type)
 	return v_Tree.size() - 1u;
 }
 
+void BlendTree::RemoveAndFreeNode(BlendNode* node)
+{
+	// Ouch
+	for(auto it = v_Tree.begin(); it != v_Tree.end(); ++it)
+		if (*it == node)
+		{
+			v_Tree.erase(it);
+			delete node;
+			node = nullptr;
+			break;
+		}
+}
+
 BlendNode* BlendTree::GetNode(uint32_t ID)
 {
 	return v_Tree[ID];

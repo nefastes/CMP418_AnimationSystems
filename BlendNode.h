@@ -90,6 +90,7 @@ public:
 
 	uint32_t AddNode(BlendNode* node);
 	uint32_t AddNode(NodeType_ type);
+	void RemoveAndFreeNode(BlendNode* node);
 	BlendNode* GetNode(uint32_t ID);
 	void ConnectToRoot(uint32_t inputNodeID);
 	void ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID);
