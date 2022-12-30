@@ -9,6 +9,14 @@
 
 namespace ed = ax::NodeEditor;
 
+/////TODO
+// - Only link one node to one input
+// - Linear blend input order corresponds to the link order, fix
+// - Linear blend fucks up second time its added, fix
+// - Fix linear sync
+// - I had an occurence of spawning a node with a link, can't reproduce
+////
+
 struct BasicInteractionExample :
     public Application
 {
@@ -82,7 +90,6 @@ struct BasicInteractionExample :
             };
             break;
         case NodeType_::NodeType_Clip:
-        {
             node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
                 ed::BeginNode(thisPtr->nodeID);
                 ImGui::Text("Clip Node");
@@ -132,9 +139,7 @@ struct BasicInteractionExample :
                 }
                 ed::Resume();
             };
-
-        }
-        break;
+            break;
         case NodeType_::NodeType_LinearBlend:
             node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
                 ed::BeginNode(thisPtr->nodeID);
@@ -209,6 +214,26 @@ struct BasicInteractionExample :
         UINode* nodeWithOutputPin;
     };
 
+
+    void RemoveLink(const LinkInfo& link)
+    {
+        // Remove animation input
+        link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
+
+        // Free input slot
+        for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
+        {
+            if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
+            {
+                link.nodeWithInputPin->usedInputPinIDs[i] = false;
+                break;
+            }
+        }
+
+        // Delete link
+        m_Links.erase(&link);
+    }
+
     using Application::Application;
 
     void OnStart() override
@@ -246,7 +271,9 @@ struct BasicInteractionExample :
                 uniqueId++,
                 0
             };
-    
+            
+            // Assign a function to draw this node
+            // This will be based on the BlendNode type
             AssignDrawFunction(currentNode);
 
             // Add the node
@@ -347,11 +374,32 @@ struct BasicInteractionExample :
                     // ed::AcceptNewItem() return true when user release mouse button.
                     if (ed::AcceptNewItem())
                     {
-                        // Connect blendnodes
                         UINode* startNode = FindUINodeFromOutputPinID(startPinId);  // This node receives the link in one of its input slots
                         UINode* endNode = FindUINodeFromInputPinID(endPinId);       // This node starts the link from its output slot
+                        if (!startNode && !endNode)
+                        {
+                            // If identifying the nodes failed, the user might have dragged from the output pin
+                            startNode = FindUINodeFromOutputPinID(endPinId);
+                            endNode = FindUINodeFromInputPinID(startPinId);
+
+                            // Swap pin ids for the following logic
+                            std::swap(startPinId, endPinId);
+                        }
                         assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
 
+                        // Check if the endNode already had a link on this ID
+                        for (LinkInfo& link : m_Links)
+                        {
+                            for (const ed::PinId& id : link.nodeWithInputPin->inputPinIDs)
+                                if (id == endPinId)
+                                {
+                                    RemoveLink(link);
+                                    goto CONNECT_BLENDNODES;
+                                }
+                        }
+                        
+                    CONNECT_BLENDNODES:
+                        // Connect blendnodes
                         for(uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
                             if (!endNode->usedInputPinIDs[i])
                             {
@@ -371,14 +419,6 @@ struct BasicInteractionExample :
                     // You may choose to reject connection between these nodes
                     // by calling ed::RejectNewItem(). This will allow editor to give
                     // visual feedback by changing link thickness and color.
-                }
-                else if (startPinId)
-                {
-
-                }
-                else if (endPinId)
-                {
-
                 }
             }
         }
@@ -400,21 +440,7 @@ struct BasicInteractionExample :
                     {
                         if (link.Id == deletedLinkId)
                         {
-                            // Remove animation input
-                            link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
-
-                            // Free input slot
-                            for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
-                            {
-                                if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
-                                {
-                                    link.nodeWithInputPin->usedInputPinIDs[i] = false;
-                                    break;
-                                }
-                            }
-
-                            // Delete link
-                            m_Links.erase(&link);
+                            RemoveLink(link);
                             break;
                         }
                     }
@@ -540,24 +566,15 @@ struct BasicInteractionExample :
                     // Do not break if a link is found as there might be more
                     if (link.startPinId == node->outputPinID)
                     {
-                        // This node was the input of another node, so remove the input as this node will be deleted
-                        link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
-                        // Free input slot
-                        for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
-                        {
-                            if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
-                            {
-                                link.nodeWithInputPin->usedInputPinIDs[i] = false;
-                                break;
-                            }
-                        }
-                        m_Links.erase(&link); // This messes up the vector, need to reset i
+                        RemoveLink(link);
+
+                        // Removing this link rearranges the vector, thus the current item[i] can at this point be what would have been item[i+1]
                         --i;
                     }
                     for(const ed::PinId& inputPinID : node->inputPinIDs)
                         if (link.endPinId == inputPinID)
                         {
-                            m_Links.erase(&link);
+                            RemoveLink(link);
                             --i;
                             break;
                         }
