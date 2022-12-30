@@ -10,8 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - Linear blend input order corresponds to the link order, fix
-// - Linear blend fucks up second time its added, fix
 // - Fix linear sync
 // - I had an occurence of spawning a node with a link, can't reproduce
 ////
@@ -108,6 +106,14 @@ struct BasicInteractionExample :
                     ed::Resume();
                 }
 
+                float s = clipNode->GetPlaybackSpeed();
+                if (ImGui::SliderFloat("Playback Speed", &s, 0.f, 4.f))
+                    clipNode->SetPlaybackSpeed(s);
+
+                bool l = clipNode->IsLooping();
+                if (ImGui::Checkbox("Looping", &l))
+                    clipNode->SetLooping(l);
+
                 ImGui::PopItemWidth();
 
                 ImGui::EndGroup();
@@ -142,7 +148,7 @@ struct BasicInteractionExample :
         case NodeType_::NodeType_LinearBlend:
             node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
                 ed::BeginNode(thisPtr->nodeID);
-                ImGui::Text("Linear Blend");
+                ImGui::Text("Linear Blend Node");
                 ImGui::BeginGroup();
                 ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
                 ImGui::Text("-> In1");
@@ -170,7 +176,7 @@ struct BasicInteractionExample :
         case NodeType_::NodeType_LinearBlendSync:
             node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
                 ed::BeginNode(thisPtr->nodeID);
-                ImGui::Text("Linear Blend Sync");
+                ImGui::Text("Linear Blend Node Synchronised");
                 ImGui::BeginGroup();
                 ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
                 ImGui::Text("-> In1");
