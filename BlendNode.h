@@ -3,13 +3,18 @@
 #include <array>
 #include "animation/skeleton.h"
 #include "Animation.h"
+
+// Reserve space for up to 1000 nodes. It seems extreme to add more nodes than this.
+#define BLENDTREE_MAXNODES 1000
+
 enum class NodeType_
 {
 	NodeType_Undefined = -1,
 	NodeType_Output,
 	NodeType_Clip,
 	NodeType_LinearBlend,
-	NodeType_LinearBlendSync
+	NodeType_LinearBlendSync,
+	NodeType_Ragdoll
 };
 
 class BlendNode
@@ -100,6 +105,7 @@ public:
 	void Update(float frameTime);
 
 	const std::vector<BlendNode*>& GetTree() const { return v_Tree; }
+	const gef::SkeletonPose& GetBindPose() const { return m_BindPose; }
 
 private:
 	const gef::SkeletonPose& m_BindPose;

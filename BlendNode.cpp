@@ -225,6 +225,7 @@ bool LinearBlendNodeSync::ProcessData(float frameTime)
 BlendTree::BlendTree(const gef::SkeletonPose& bindPose) : m_BindPose(bindPose)
 {
 	// The root node will always be an output node
+	v_Tree.reserve(BLENDTREE_MAXNODES);
 	v_Tree.push_back(new OutputNode(m_BindPose));
 }
 
@@ -243,12 +244,20 @@ const gef::SkeletonPose& BlendTree::GetOutputPose()
 
 uint32_t BlendTree::AddNode(BlendNode* node)
 {
+	// Do not allow to add a node if we reached BLENDTREE_MAXNODES
+	if (v_Tree.size() >= BLENDTREE_MAXNODES)
+		return UINT32_MAX;
+
 	v_Tree.push_back(node);
 	return v_Tree.size() - 1u;
 }
 
 uint32_t BlendTree::AddNode(NodeType_ type)
 {
+	// Do not allow to add a node if we reached BLENDTREE_MAXNODES
+	if (v_Tree.size() >= BLENDTREE_MAXNODES)
+		return UINT32_MAX;
+
 	switch (type)
 	{
 	case NodeType_::NodeType_Output:			v_Tree.push_back(new OutputNode(m_BindPose));			break;

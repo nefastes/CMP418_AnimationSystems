@@ -71,7 +71,6 @@ namespace AsdfAnim
 		float m_BodyVelociy;
 
 		BlendTree* p_BlendTree;
-		uint32_t m_TestBlendNodeID;
 	};
 
 }

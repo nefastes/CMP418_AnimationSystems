@@ -67,6 +67,135 @@ struct BasicInteractionExample :
         return nullptr;
     }
 
+    void AssignDrawFunction(UINode& node)
+    {
+        switch (node.animationNode->GetType())
+        {
+        case NodeType_::NodeType_Output:
+            node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                ed::BeginNode(thisPtr->nodeID);
+                ImGui::Text("Output Node");
+                ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                ImGui::Text("-> In");
+                ed::EndPin();
+                ed::EndNode();
+            };
+            break;
+        case NodeType_::NodeType_Clip:
+        {
+            node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                ed::BeginNode(thisPtr->nodeID);
+                ImGui::Text("Clip Node");
+                ImGui::BeginGroup();
+                ImGui::PushItemWidth(200);
+
+                const std::vector<std::string>& availableAnims = sentAnim->AvailableClips();
+                ClipNode* clipNode = reinterpret_cast<ClipNode*>(thisPtr->animationNode);
+                const char* clipName = clipNode->GetClip()->name.c_str();
+
+                ImGui::Text("Clip:");
+                ImGui::SameLine();
+                if (ImGui::Button(clipName))
+                {
+                    ed::Suspend();      // This gets out of the canvas coordinates and we can open the popup on screen coords instead
+                    ImGui::OpenPopup("clip");
+                    ed::Resume();
+                }
+
+                ImGui::PopItemWidth();
+
+                ImGui::EndGroup();
+                ImGui::SameLine();      // Next column
+                ImGui::BeginGroup();
+
+                ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                ImGui::Text("Out ->");
+                ed::EndPin();
+                ImGui::EndGroup();
+                ed::EndNode();
+
+                // This is the actual popup Gui drawing section.
+                ed::Suspend();
+                if (ImGui::BeginPopup("clip")) {
+                    // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
+                    ImGui::TextDisabled("Pick One:");
+                    ImGui::BeginChild("popup_scroller", ImVec2(200, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                    for (size_t j = 0u; j < availableAnims.size(); ++j)
+                    {
+                        if (ImGui::Button(availableAnims[j].c_str())) {
+                            clipNode->SetClip(sentAnim->GetClip(j));
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                    ImGui::EndChild();
+                    ImGui::EndPopup();
+                }
+                ed::Resume();
+            };
+
+        }
+        break;
+        case NodeType_::NodeType_LinearBlend:
+            node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                ed::BeginNode(thisPtr->nodeID);
+                ImGui::Text("Linear Blend");
+                ImGui::BeginGroup();
+                ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                ImGui::Text("-> In1");
+                ed::EndPin();
+                ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
+                ImGui::Text("-> In2");
+                ed::EndPin();
+
+                LinearBlendNode* blendNode = reinterpret_cast<LinearBlendNode*>(thisPtr->animationNode);
+                ImGui::PushItemWidth(200);
+                ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+                ImGui::PopItemWidth();
+
+                ImGui::EndGroup();
+                ImGui::SameLine();
+                ImGui::BeginGroup();
+
+                ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                ImGui::Text("Out ->");
+                ed::EndPin();
+                ImGui::EndGroup();
+                ed::EndNode();
+            };
+            break;
+        case NodeType_::NodeType_LinearBlendSync:
+            node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+                ed::BeginNode(thisPtr->nodeID);
+                ImGui::Text("Linear Blend Sync");
+                ImGui::BeginGroup();
+                ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+                ImGui::Text("-> In1");
+                ed::EndPin();
+                ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
+                ImGui::Text("-> In2");
+                ed::EndPin();
+
+                LinearBlendNodeSync* blendNode = reinterpret_cast<LinearBlendNodeSync*>(thisPtr->animationNode);
+                ImGui::PushItemWidth(200);
+                ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+                ImGui::PopItemWidth();
+
+                ImGui::EndGroup();
+                ImGui::SameLine();
+                ImGui::BeginGroup();
+
+                ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+                ImGui::Text("Out ->");
+                ed::EndPin();
+                ImGui::EndGroup();
+                ed::EndNode();
+            };
+            break;
+        default:
+            break;
+        }
+    }
+
     // Struct to hold basic information about connection between
     // pins. Note that connection (aka. link) has its own ID.
     // This is useful later with dealing with selections, deletion
@@ -102,6 +231,7 @@ struct BasicInteractionExample :
         p_SentAnim = anim;
         m_Links.clear();
         v_Nodes.clear();
+        v_Nodes.reserve(BLENDTREE_MAXNODES);
 
         // Build the nodes from the blend tree
         uintptr_t uniqueId = 1;
@@ -117,131 +247,7 @@ struct BasicInteractionExample :
                 0
             };
     
-            switch (currentNode.animationNode->GetType())
-            {
-            case NodeType_::NodeType_Output:
-                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
-                    ed::BeginNode(thisPtr->nodeID);
-                    ImGui::Text("Output Node");
-                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
-                    ImGui::Text("-> In");
-                    ed::EndPin();
-                    ed::EndNode();
-                };
-                break;
-            case NodeType_::NodeType_Clip:
-            {
-                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
-                    ed::BeginNode(thisPtr->nodeID);
-                    ImGui::Text("Clip Node");
-                    ImGui::BeginGroup();
-                    ImGui::PushItemWidth(200);
-
-                    const std::vector<std::string>& availableAnims = sentAnim->AvailableClips();
-                    ClipNode* clipNode = reinterpret_cast<ClipNode*>(thisPtr->animationNode);
-                    const char* clipName = clipNode->GetClip()->name.c_str();
-
-                    ImGui::Text("Clip:");
-                    ImGui::SameLine();
-                    if (ImGui::Button(clipName))
-                    {
-                        ed::Suspend();      // This gets out of the canvas coordinates and we can open the popup on screen coords instead
-                        ImGui::OpenPopup("clip");
-                        ed::Resume();
-                    }
-
-                    ImGui::PopItemWidth();
-
-                    ImGui::EndGroup();
-                    ImGui::SameLine();      // Next column
-                    ImGui::BeginGroup();
-                    
-                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGui::EndGroup();
-                    ed::EndNode();
-
-                    // This is the actual popup Gui drawing section.
-                    ed::Suspend();
-                    if (ImGui::BeginPopup("clip")) {
-                        // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
-                        ImGui::TextDisabled("Pick One:");
-                        ImGui::BeginChild("popup_scroller", ImVec2(200, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
-                        for (size_t j = 0u; j < availableAnims.size(); ++j)
-                        {
-                            if (ImGui::Button(availableAnims[j].c_str())) {
-                                clipNode->SetClip(sentAnim->GetClip(j));
-                                ImGui::CloseCurrentPopup();
-                            }
-                        }
-                        ImGui::EndChild();
-                        ImGui::EndPopup();
-                    }
-                    ed::Resume();
-                };
-                
-            }
-            break;
-            case NodeType_::NodeType_LinearBlend:
-                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
-                    ed::BeginNode(thisPtr->nodeID);
-                    ImGui::Text("Linear Blend");
-                    ImGui::BeginGroup();
-                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
-                    ImGui::Text("-> In1");
-                    ed::EndPin();
-                    ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
-                    ImGui::Text("-> In2");
-                    ed::EndPin();
-
-                    LinearBlendNode* blendNode = reinterpret_cast<LinearBlendNode*>(thisPtr->animationNode);
-                    ImGui::PushItemWidth(200);
-                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
-                    ImGui::PopItemWidth();
-
-                    ImGui::EndGroup();
-                    ImGui::SameLine();
-                    ImGui::BeginGroup();
-
-                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGui::EndGroup();
-                    ed::EndNode();
-                };
-            break;
-            case NodeType_::NodeType_LinearBlendSync:
-                currentNode.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
-                    ed::BeginNode(thisPtr->nodeID);
-                    ImGui::Text("Linear Blend Sync");
-                    ImGui::BeginGroup();
-                    ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
-                    ImGui::Text("-> In1");
-                    ed::EndPin();
-                    ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
-                    ImGui::Text("-> In2");
-                    ed::EndPin();
-
-                    LinearBlendNodeSync* blendNode = reinterpret_cast<LinearBlendNodeSync*>(thisPtr->animationNode);
-                    ImGui::PushItemWidth(200);
-                    ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
-                    ImGui::PopItemWidth();
-
-                    ImGui::EndGroup();
-                    ImGui::SameLine();
-                    ImGui::BeginGroup();
-
-                    ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
-                    ImGui::Text("Out ->");
-                    ed::EndPin();
-                    ImGui::EndGroup();
-                    ed::EndNode();
-                };
-            break;
-            default:
-                break;
-            }
+            AssignDrawFunction(currentNode);
 
             // Add the node
             v_Nodes.push_back(std::move(currentNode));
@@ -432,18 +438,84 @@ struct BasicInteractionExample :
         {
             if (ImGui::MenuItem("Clip Node"))
             {
+                // Create a clip node
+                BlendTree* blendTree = p_SentAnim->GetBlendTree();
+                uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Clip);
+                ClipNode* clipNode = reinterpret_cast<ClipNode*>(blendTree->GetNode(nodeID));
+                clipNode->SetClip(p_SentAnim->GetClip(0u));
+
+                // Create the UI node
+                int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+                UINode currentNode = {
+                    clipNode,
+                    uniqueId++,
+                    {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                    {false, false, false, false},
+                    uniqueId,
+                    0
+                };
+                AssignDrawFunction(currentNode);
+                v_Nodes.push_back(std::move(currentNode));
                 ImGui::CloseCurrentPopup();
             }
             if (ImGui::MenuItem("Linear Blend Node"))
             {
+                // Create a clip node
+                BlendTree* blendTree = p_SentAnim->GetBlendTree();
+                uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_LinearBlend);
+
+                // Create the UI node
+                int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+                UINode currentNode = {
+                    blendTree->GetNode(nodeID),
+                    uniqueId++,
+                    {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                    {false, false, false, false},
+                    uniqueId,
+                    0
+                };
+                AssignDrawFunction(currentNode);
+                v_Nodes.push_back(std::move(currentNode));
                 ImGui::CloseCurrentPopup();
             }
             if (ImGui::MenuItem("Linear Blend Node Synchornised"))
             {
+                // Create a clip node
+                BlendTree* blendTree = p_SentAnim->GetBlendTree();
+                uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_LinearBlendSync);
+
+                // Create the UI node
+                int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+                UINode currentNode = {
+                    blendTree->GetNode(nodeID),
+                    uniqueId++,
+                    {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                    {false, false, false, false},
+                    uniqueId,
+                    0
+                };
+                AssignDrawFunction(currentNode);
+                v_Nodes.push_back(std::move(currentNode));
                 ImGui::CloseCurrentPopup();
             }
             if (ImGui::MenuItem("Ragdoll Node"))
             {
+                //// Create a clip node
+                //BlendTree* blendTree = p_SentAnim->GetBlendTree();
+                //uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Ragdoll);
+
+                //// Create the UI node
+                //int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+                //UINode currentNode = {
+                //    blendTree->GetNode(nodeID),
+                //    uniqueId++,
+                //    {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                //    {false, false, false, false},
+                //    uniqueId,
+                //    0
+                //};
+                //AssignDrawFunction(currentNode);
+                //v_Nodes.push_back(std::move(currentNode));
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
