@@ -156,6 +156,11 @@ const AsdfAnim::Clip* ClipNode::GetClip()
 	return p_Clip;
 }
 
+void ClipNode::ResetAnimationTime()
+{
+	m_AnimationTime = 0.f;
+}
+
 /// <summary>
 /// Linear Blend
 /// </summary>
@@ -168,10 +173,10 @@ LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	if (!a_Inputs[0] && !a_Inputs[1])		return false;
+	if(a_Inputs[0] && a_Inputs[1])			m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
-	else									m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+	else									return false;
 	return true;
 }
 
@@ -180,6 +185,7 @@ void LinearBlendNode::SetBlendValue(float pBlendVal)
 	m_BlendValue = pBlendVal;
 }
 
+// TODO: PTR
 float* LinearBlendNode::GetBlendValue()
 {
 	return &m_BlendValue;
@@ -198,24 +204,48 @@ LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : Li
 bool LinearBlendNodeSync::ProcessData(float frameTime)
 {
 	// Scale the two input clips to be the same lengh
-	if (!a_Inputs[0] && !a_Inputs[1])		return false;
-	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
-	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
-	else
+	if (a_Inputs[0] && a_Inputs[1])
 	{
 		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 
-		float duration1 = input1->GetClip()->clip->duration() / input2->GetClip()->clip->duration() - 1.f;
-		float duration2 = 1.f - input2->GetClip()->clip->duration() / input1->GetClip()->clip->duration();
+		const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
+		const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
 
-		input1->SetPlaybackSpeed(duration1 * m_BlendValue);
-		input2->SetPlaybackSpeed(duration2 * m_BlendValue);
+		input1->SetPlaybackSpeed(1.f + input1_mod);							// With mock values: 1
+		input2->SetPlaybackSpeed(a_ClipsMaxMin[1] + input2_mod);			// 
 
 		m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 	}
+	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
+	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
+	else return false;
 
 	return true;
+}
+
+void LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
+{
+	BlendNode::SetInput(slot, input);
+
+	// Whenever an input is added to this node we need to resync the clips
+	for (BlendNode* node : a_Inputs)
+		if (node)
+			reinterpret_cast<ClipNode*>(node)->ResetAnimationTime();
+
+	// When there are two inputs, it means the node can operate
+	// Take advantage to do only-once initialisations
+	if (!a_Inputs[0] || !a_Inputs[1]) return;
+
+	// Initialise the clip1 and clip2 playback speed min and max respectively for a synchronised blend
+	// array = { clip1_maxSpeed, clip2_minSpeed }
+	// clip1_maxSpeed determines the maximum speed clip1 needs to be at when clip2 is at normal speed (1)
+	// clip2_minSpeed determines the minimum speed clip2 needs to be at when clip1 is at normal speed (1)
+	ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+	const float duration1 = input1->GetClip()->clip->duration();
+	const float duration2 = input2->GetClip()->clip->duration();
+	a_ClipsMaxMin = {duration1 / duration2, duration2 / duration1 };
 }
 
 /// <summary>

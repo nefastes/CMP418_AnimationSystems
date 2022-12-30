@@ -117,6 +117,9 @@
     <ClCompile Include="..\..\..\imgui\node-editor\utilities\widgets.cpp">
       <Filter>Header Files\imgui\node-editor\utilities</Filter>
     </ClCompile>
+    <ClCompile Include="UserInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\scene_app.h">
@@ -218,7 +221,7 @@
     <ClInclude Include="..\..\..\imgui\node-editor\utilities\widgets.h">
       <Filter>Header Files\imgui\node-editor\utilities</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\BasicInteraction.h">
+    <ClInclude Include="..\..\UserInterface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

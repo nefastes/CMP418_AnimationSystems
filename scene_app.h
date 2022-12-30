@@ -11,7 +11,7 @@
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx11.h"
 #include "../imgui/imgui_impl_win32.h"
-#include "BasicInteraction.h"
+#include "UserInterface.h"
 
 #include "motion_clip_player.h"
 #include "AnimationManager.h"
@@ -57,7 +57,7 @@ private:
 	std::vector<ImVec4> gui_animation_rotations_;
 	std::vector<ImVec4> gui_animation_scales_;
 	bool editor_opened_;
-	BasicInteractionExample editor_;
+	UI_NodeEditor editor_;
 };
 
 #endif // _SCENE_APP_H
