@@ -157,6 +157,9 @@ void SceneApp::DrawHUD()
 
 				if (currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D) || currentAnim->IsType(AsdfAnim::AnimationType::Animation_Type_2D_Rigged))
 				{
+					// If the node editor was previosuly opened for a 3D animation close it
+					editor_opened_ = false;
+
 					AsdfAnim::Animation2D* current2D = reinterpret_cast<AsdfAnim::Animation2D*>(currentAnim);
 					if (current2D->GetArmatureCount() > 1)
 					{

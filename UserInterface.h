@@ -10,12 +10,17 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
+// - Radgdoll node
+// - Add a transition node and a Button node to support different transition types
 // - BUG: ResetFor does not reset node placement. I.E. the output node is in the same position for all tabs
 // - I had an occurence of spawning a node with a link, can't reproduce
-// - Figure out how ImVector works properly and maybe take advantage of it to change it for v_Nodes
 // - Maybe put a pointer of the sent anim to UINode to avoid an extra parameter? Or ref the pointer in the Draw()
-// - Add a transition node and a Button node to support different transition types
 // - Put BlenNodes inside namespace AsdfAnim::
+// 
+// IF THERE IS TIME LEFTOVER
+// - Figure out how ImVector works properly and maybe take advantage of it to change it for v_Nodes
+// - Add a blend tree for 2D rigged animations
+// - Add support for the node editor with 2D animations
 ////
 
 struct UI_NodeEditor :

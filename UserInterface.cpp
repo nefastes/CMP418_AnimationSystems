@@ -533,6 +533,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
 
                     // Removing this link rearranges the vector, thus the current item[i] can at this point be what would have been item[i+1]
                     --i;
+                    continue;
                 }
                 for (const ed::PinId& inputPinID : node->inputPinIDs)
                     if (link.endPinId == inputPinID)
