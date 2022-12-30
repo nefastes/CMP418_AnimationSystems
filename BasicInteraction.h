@@ -10,7 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - Only link one node to one input
 // - Linear blend input order corresponds to the link order, fix
 // - Linear blend fucks up second time its added, fix
 // - Fix linear sync
@@ -234,6 +233,17 @@ struct BasicInteractionExample :
         m_Links.erase(&link);
     }
 
+    void RemoveLinkWithEndNodeID(const ed::PinId& idToSearch)
+    {
+        // Check if the endNode already had a link on this ID
+        for (LinkInfo& link : m_Links)
+            if (link.endPinId == idToSearch)
+            {
+                RemoveLink(link);
+                return;
+            }
+    }
+
     using Application::Application;
 
     void OnStart() override
@@ -386,23 +396,13 @@ struct BasicInteractionExample :
                             std::swap(startPinId, endPinId);
                         }
                         assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
-
-                        // Check if the endNode already had a link on this ID
-                        for (LinkInfo& link : m_Links)
-                        {
-                            for (const ed::PinId& id : link.nodeWithInputPin->inputPinIDs)
-                                if (id == endPinId)
-                                {
-                                    RemoveLink(link);
-                                    goto CONNECT_BLENDNODES;
-                                }
-                        }
                         
                     CONNECT_BLENDNODES:
                         // Connect blendnodes
                         for(uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
-                            if (!endNode->usedInputPinIDs[i])
+                            if (endNode->inputPinIDs[i] == endPinId)
                             {
+                                RemoveLinkWithEndNodeID(endPinId);
                                 endNode->animationNode->SetInput(i, startNode->animationNode); // Link the two nodes
                                 endNode->usedInputPinIDs[i] = true;
                                 break;
