@@ -117,7 +117,7 @@
     <ClCompile Include="..\..\..\imgui\node-editor\utilities\widgets.cpp">
       <Filter>Header Files\imgui\node-editor\utilities</Filter>
     </ClCompile>
-    <ClCompile Include="UserInterface.cpp">
+    <ClCompile Include="..\..\UserInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
