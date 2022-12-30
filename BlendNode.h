@@ -55,7 +55,7 @@ public:
 	void SetClip(const AsdfAnim::Clip* clip);
 	float GetPlaybackSpeed();
 	bool IsLooping();
-	const AsdfAnim::Clip* GetClip();
+	const AsdfAnim::Clip* GetClip() const;
 	void ResetAnimationTime();
 
 private:
@@ -83,8 +83,11 @@ public:
 	LinearBlendNodeSync(const gef::SkeletonPose& bindPose);
 	bool ProcessData(float frameTime) final override;
 	void SetInput(uint32_t slot, BlendNode* input) final override;
+	void CalculateClipsMaxMin();
+
 private:
 	std::array<float, 2> a_ClipsMaxMin;
+	std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
 };
 
 class BlendTree

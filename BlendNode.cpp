@@ -151,7 +151,7 @@ bool ClipNode::IsLooping()
 {
 	return m_ClipLooping;
 }
-const AsdfAnim::Clip* ClipNode::GetClip()
+const AsdfAnim::Clip* ClipNode::GetClip() const
 {
 	return p_Clip;
 }
@@ -209,6 +209,15 @@ bool LinearBlendNodeSync::ProcessData(float frameTime)
 		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 
+		// Check if the clips have changed, in which case the maxmin needs to be recalculated
+		const AsdfAnim::ClipType input_type1 = input1->GetClip()->type;
+		const AsdfAnim::ClipType input_type2 = input2->GetClip()->type;
+		if (input_type1 != a_ClipTypes[0] || input_type2 != a_ClipTypes[1])
+		{
+			a_ClipTypes = { input_type1, input_type2 };
+			CalculateClipsMaxMin();
+		}
+
 		const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
 		const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
 
@@ -235,8 +244,17 @@ void LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 
 	// When there are two inputs, it means the node can operate
 	// Take advantage to do only-once initialisations
-	if (!a_Inputs[0] || !a_Inputs[1]) return;
+	if (a_Inputs[0] && a_Inputs[1])
+	{
+		const ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		const ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		a_ClipTypes = { input1->GetClip()->type, input2->GetClip()->type };
+		CalculateClipsMaxMin();
+	}
+}
 
+void LinearBlendNodeSync::CalculateClipsMaxMin()
+{
 	// Initialise the clip1 and clip2 playback speed min and max respectively for a synchronised blend
 	// array = { clip1_maxSpeed, clip2_minSpeed }
 	// clip1_maxSpeed determines the maximum speed clip1 needs to be at when clip2 is at normal speed (1)
@@ -245,7 +263,7 @@ void LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 	const float duration1 = input1->GetClip()->clip->duration();
 	const float duration2 = input2->GetClip()->clip->duration();
-	a_ClipsMaxMin = {duration1 / duration2, duration2 / duration1 };
+	a_ClipsMaxMin = { duration1 / duration2, duration2 / duration1 };
 }
 
 /// <summary>
