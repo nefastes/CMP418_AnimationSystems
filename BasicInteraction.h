@@ -133,7 +133,11 @@ struct BasicInteractionExample :
                     ImGui::Text("Clip:");
                     ImGui::SameLine();
                     if (ImGui::Button(clipName))
+                    {
+                        ed::Suspend();      // This gets out of the canvas coordinates and we can open the popup on screen coords instead
                         ImGui::OpenPopup("clip");
+                        ed::Resume();
+                    }
 
                     ImGui::PopItemWidth();
 
