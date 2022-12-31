@@ -39,7 +39,7 @@ struct UI_NodeEditor :
         std::array<ed::PinId, 4> inputPinIDs;
         std::array<bool, 4> usedInputPinIDs;
         ed::PinId outputPinID;
-        std::function<void(UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim)> Draw;
+        std::function<void(UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim)> Draw;
     };
     UINode* FindUINodeFromAnimationNode(BlendNode* const& itemToSearch);
     UINode* FindUINodeFromOutputPinID(const ed::PinId& itemToSearch);

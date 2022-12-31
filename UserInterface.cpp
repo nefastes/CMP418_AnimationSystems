@@ -50,7 +50,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
     switch (node.animationNode->GetType())
     {
     case NodeType_::NodeType_Output:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Output Node");
             ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
@@ -60,7 +60,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_Clip:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Clip Node");
             ImGui::BeginGroup();
@@ -119,7 +119,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_LinearBlend:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Linear Blend Node");
             ImGui::BeginGroup();
@@ -147,7 +147,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_LinearBlendSync:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Linear Blend Node Synchronised");
             ImGui::BeginGroup();
@@ -175,9 +175,9 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_Ragdoll:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
-            ImGui::Text("Linear Blend Node Synchronised");
+            ImGui::Text("Ragdoll Node");
             RagdollNode* node = reinterpret_cast<RagdollNode*>(thisPtr->animationNode);
 
             if (!node->IsRagdollValid())
@@ -247,7 +247,7 @@ void UI_NodeEditor::RemoveLinkWithEndNodeID(const ed::PinId & idToSearch)
 void UI_NodeEditor::OnStart()
 {
     ed::Config config;
-    config.SettingsFile = "BasicInteraction.json";
+    config.SettingsFile = "UI_NodeEditor.json";
     p_Context = ed::CreateEditor(&config);
 }
 
