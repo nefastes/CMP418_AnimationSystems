@@ -3,6 +3,7 @@
 #include <array>
 #include "animation/skeleton.h"
 #include "Animation.h"
+#include "ragdoll.h"
 
 // Reserve space for up to 1000 nodes. It seems extreme to add more nodes than this.
 #define BLENDTREE_MAXNODES 1000
@@ -26,7 +27,7 @@ public:
 	void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
 	void AddInput(BlendNode* input);
 	void RemoveInput(BlendNode* input);
-	bool Update(float frameTime);
+	bool Update(float frameTime, bool& needPhysicsUpdate);
 	virtual bool ProcessData(float frameTime) = 0;
 	const gef::SkeletonPose& GetPose();
 	const NodeType_& GetType() const { return m_Type; }
@@ -90,6 +91,23 @@ private:
 	std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
 };
 
+class RagdollNode : public BlendNode
+{
+public:
+	RagdollNode(const gef::SkeletonPose& bindPose);
+	bool ProcessData(float frameTime) final override;
+	void SetRagdoll(Ragdoll* pRagdoll);
+
+	bool IsActive() { return m_Active; }
+	void SetActive(bool a) { m_Active = a; }
+
+	bool IsRagdollValid() { return p_Ragdoll != nullptr; }
+
+private:
+	Ragdoll* p_Ragdoll;
+	bool m_Active;
+};
+
 class BlendTree
 {
 public:
@@ -106,7 +124,7 @@ public:
 	void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID);
 	void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID);
 
-	void Update(float frameTime);
+	void Update(float frameTime, bool& needsPhysicsUpdate);
 
 	const std::vector<BlendNode*>& GetTree() const { return v_Tree; }
 	const gef::SkeletonPose& GetBindPose() const { return m_BindPose; }

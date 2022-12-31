@@ -4,6 +4,7 @@
 #include "BlendNode.h"
 #include <vector>
 #include <array>
+#include "ragdoll.h"
 
 // Values from average speeds in m/s since 1u = 1m
 #define PHYSICS_WALK_SPEED 1.38889f
@@ -27,10 +28,10 @@ namespace AsdfAnim
 	public:
 		Animation3D();
 		~Animation3D();
-		static Animation3D* CreateFromFolder(gef::Platform& platform, const char* folderpath);
 		static Animation3D* CreateFromSceneFile(gef::Platform& platform, const char* folderpath);
 
 		void LoadScene(gef::Platform& platform, const char* filepath);
+		void LoadRagdoll(btDiscreteDynamicsWorld* pbtDynamicWorld, const char* filepath);
 
 		virtual void Update(float frameTime) final override;
 		void Draw(gef::Renderer3D* renderer) const;
@@ -45,8 +46,11 @@ namespace AsdfAnim
 		void SetBodyVelocity(float v) { m_BodyVelociy = v; }
 		const float& GetBodyVelocity() { return m_BodyVelociy; }
 
-		void InitBlendTree();
 		BlendTree* GetBlendTree() const { return p_BlendTree; }
+
+		Ragdoll* GetRagdoll() const { return p_Ragdoll; }
+
+		bool RequirePhysics() const { return m_NeedsPhysicsUpdate; }
 
 	private:
 		gef::Scene* p_Scene;
@@ -71,6 +75,9 @@ namespace AsdfAnim
 		float m_BodyVelociy;
 
 		BlendTree* p_BlendTree;
+
+		Ragdoll* p_Ragdoll;
+		bool m_NeedsPhysicsUpdate;
 	};
 
 }

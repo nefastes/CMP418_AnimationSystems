@@ -39,6 +39,12 @@ void SceneApp::Init()
 	input_manager_ = gef::InputManager::Create(platform_);
 	InitFont();
 
+	// Setup physics engine
+	// This needs to come before loading any asset otherwise loading ragdolls will not happen since no physics world would exist
+	// Ensure to send the physics world to the animation manager when present
+	physics_engine_.Init();
+	animation_manager_.SetBtPhysicsWorld(physics_engine_.GetWorld());
+
 	// Setup view and projection matrices
 	gef::Matrix44 projection_matrix;
 	gef::Matrix44 view_matrix;
@@ -55,24 +61,10 @@ void SceneApp::Init()
 	default_shader_data.set_ambient_light_colour(gef::Colour(0.5f, 0.5f, 0.5f, 1.0f));
 	default_shader_data.AddPointLight(default_point_light);
 
+	//// LOAD ASSETS
 	// Load example animations
 	animation_manager_.LoadAllGef3DFromFolder("", true);			// This will load all 3D animations within the media folder
 	animation_manager_.LoadAllDragonbone2DJsonFromFolder("", true);	// This will load all 2D animations within the media folder (DragonBone)
-
-	// Setup gui varaibles
-	size_t size3d = animation_manager_.GetAvailable3DDatas().size();
-	size_t size2d = animation_manager_.GetAvailable2DDatas().size();
-	gui_selected_subanimation_.resize(size3d + size2d);
-	gui_animation_transition_time_.resize(size3d, 1.f);
-	gui_animation_transition_type_.resize(size3d, AsdfAnim::TransitionType::Transition_Type_Frozen);
-	gui_animation_translations_.resize(size3d);
-	gui_animation_rotations_.resize(size3d);
-	gui_animation_scales_.resize(size3d, ImVec4(1.f, 1.f, 1.f, 0.f));
-	editor_.OnStart();
-
-	// Setup physics engine
-	physics_engine_.Init();
-
 	// Add a floor mesh
 	btVector3 floor_halfsize = { 50.f, 1.f, 50.f };
 	const btRigidBody* floor_body = physics_engine_.CreateBoxBody(floor_halfsize);
@@ -86,6 +78,17 @@ void SceneApp::Init()
 		floor_body
 	};
 	objects_.push_back(std::move(floor));
+	
+	// Setup gui varaibles
+	size_t size3d = animation_manager_.GetAvailable3DDatas().size();
+	size_t size2d = animation_manager_.GetAvailable2DDatas().size();
+	gui_selected_subanimation_.resize(size3d + size2d);
+	gui_animation_transition_time_.resize(size3d, 1.f);
+	gui_animation_transition_type_.resize(size3d, AsdfAnim::TransitionType::Transition_Type_Frozen);
+	gui_animation_translations_.resize(size3d);
+	gui_animation_rotations_.resize(size3d);
+	gui_animation_scales_.resize(size3d, ImVec4(1.f, 1.f, 1.f, 0.f));
+	editor_.OnStart();
 }
 
 void SceneApp::CleanUp()
@@ -113,8 +116,9 @@ bool SceneApp::Update(float frame_time)
 	fps_ = 1.0f / frame_time;
 
 	input_manager_->Update();
-	physics_engine_.Update();
 	animation_manager_.Update(frame_time);
+	if(animation_manager_.RequirePhysics())
+		physics_engine_.Update();
 
 	return true;
 }

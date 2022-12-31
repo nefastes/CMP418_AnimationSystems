@@ -27,6 +27,7 @@ public:
 	void Init();
 	void Update();
 
+	btDiscreteDynamicsWorld* GetWorld();
 	const btRigidBody* CreateBoxBody(const btVector3& halfSize, btScalar mass = 0.f);
 
 	static gef::Matrix44 btTransform2Matrix(const btTransform& transform, bool convertUnits = false);

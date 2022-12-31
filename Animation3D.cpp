@@ -12,21 +12,14 @@
 #include <Windows.h>
 
 AsdfAnim::Animation3D::Animation3D() : p_Scene(nullptr), p_Mesh(nullptr), p_MeshInstance(nullptr), p_CurrentAnimation(nullptr), m_BlendInfo{},
-m_Activeplayer(&m_AnimationPlayers[0]), m_BodyVelociy(0.f)
+m_Activeplayer(&m_AnimationPlayers[0]), m_BodyVelociy(0.f), p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
 {
 }
 
 AsdfAnim::Animation3D::~Animation3D()
 {
-    if (p_BlendTree)
-        delete p_BlendTree, p_BlendTree = nullptr;
-}
-
-AsdfAnim::Animation3D* AsdfAnim::Animation3D::CreateFromFolder(gef::Platform& platform, const char* folderpath)
-{
-    Animation3D* animation = new Animation3D();
-    animation->LoadScene(platform, folderpath);
-    return animation;
+    if (p_BlendTree)    delete p_BlendTree, p_BlendTree = nullptr;
+    if (p_Ragdoll)      delete p_Ragdoll, p_Ragdoll = nullptr;
 }
 
 AsdfAnim::Animation3D* AsdfAnim::Animation3D::CreateFromSceneFile(gef::Platform& platform, const char* filepath)
@@ -87,7 +80,7 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         // If the file contains the same name as the scene file and '@', this is a valid animation file and all the information it contains should be loaded
         gef::Scene tempScene;
         tempScene.ReadSceneFromFile(platform, entry.path().string().c_str());
-        for (auto animIterator : tempScene.animations)
+        for (auto& animIterator : tempScene.animations)
         {
             //Determine the type of this clip if possible
             ClipType clipType = ClipType::Clip_Type_Undefined;
@@ -113,6 +106,7 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         }
     }
 
+    // TODO: Handle the case of no animation loaded, should only display 3d mesh and maybe a message box saying no animation was loaded
     // Initialise the first clip player on the first loaded animation
     p_CurrentAnimation = &v_Clips.front();
     m_AnimationPlayers[0].set_clip(p_CurrentAnimation->clip);
@@ -125,9 +119,16 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
     p_BlendTree->ConnectToRoot(idleNodeID);
 }
 
+void AsdfAnim::Animation3D::LoadRagdoll(btDiscreteDynamicsWorld* pbtDynamicWorld, const char* filepath)
+{
+    p_Ragdoll = new Ragdoll;
+    p_Ragdoll->Init(p_BlendTree->GetBindPose(), pbtDynamicWorld, filepath);
+}
+
 void AsdfAnim::Animation3D::Update(float frameTime)
 {
-    p_BlendTree->Update(frameTime);
+    m_NeedsPhysicsUpdate = false;
+    p_BlendTree->Update(frameTime, m_NeedsPhysicsUpdate);
     p_MeshInstance->UpdateBoneMatrices(p_BlendTree->GetOutputPose());
 }
 

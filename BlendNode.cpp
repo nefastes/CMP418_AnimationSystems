@@ -39,7 +39,7 @@ void BlendNode::RemoveInput(BlendNode * input)
 		}
 }
 
-bool BlendNode::Update(float frameTime)
+bool BlendNode::Update(float frameTime, bool& needPhysicsUpdate)
 {
 	// Track and update all the parameters before processing its own data to follow a post-order traversal
 	bool success = true;
@@ -48,7 +48,14 @@ bool BlendNode::Update(float frameTime)
 		// Recursively call the update of each input node
 		// This will create a post-order traversal on the entire tree
 		// The last nodes of the tree will have no parameter to update
-		if (a_Inputs[i]) success &= a_Inputs[i]->Update(frameTime);
+		if (a_Inputs[i]) success &= a_Inputs[i]->Update(frameTime, needPhysicsUpdate);
+	}
+
+	// Ragdoll nodes will need a physics iteration
+	if (m_Type == NodeType_::NodeType_Ragdoll)
+	{
+		RagdollNode* node = reinterpret_cast<RagdollNode*>(this);
+		needPhysicsUpdate = m_Type == NodeType_::NodeType_Ragdoll && node->IsActive();
 	}
 
 	if (success)	return ProcessData(frameTime);
@@ -266,6 +273,38 @@ void LinearBlendNodeSync::CalculateClipsMaxMin()
 	a_ClipsMaxMin = { duration1 / duration2, duration2 / duration1 };
 }
 
+///
+/// Ragdoll Node
+/// 
+RagdollNode::RagdollNode(const gef::SkeletonPose & bindPose) : BlendNode(bindPose), p_Ragdoll(nullptr), m_Active(true)
+{
+	m_Type = NodeType_::NodeType_Ragdoll;
+}
+
+bool RagdollNode::ProcessData(float frameTime)
+{
+	if (!p_Ragdoll) return false;
+
+	// If the node is deactivated and there is an input, update the ragdoll according to the input
+	if (!m_Active && a_Inputs[0])
+	{
+		m_BlendedPose = a_Inputs[0]->GetPose();
+		p_Ragdoll->set_pose(m_BlendedPose);
+		p_Ragdoll->UpdateRagdollFromPose();
+	}
+	else
+	{
+		p_Ragdoll->UpdatePoseFromRagdoll();
+		m_BlendedPose = p_Ragdoll->pose();
+	}
+	return true;
+}
+
+void RagdollNode::SetRagdoll(Ragdoll* pRagdoll)
+{
+	p_Ragdoll = pRagdoll;
+}
+
 /// <summary>
 /// Blend tree
 /// </summary>
@@ -308,12 +347,13 @@ uint32_t BlendTree::AddNode(NodeType_ type)
 
 	switch (type)
 	{
-	case NodeType_::NodeType_Output:			v_Tree.push_back(new OutputNode(m_BindPose));			break;
-	case NodeType_::NodeType_Clip:				v_Tree.push_back(new ClipNode(m_BindPose));				break;
-	case NodeType_::NodeType_LinearBlend:		v_Tree.push_back(new LinearBlendNode(m_BindPose));		break;
-	case NodeType_::NodeType_LinearBlendSync:	v_Tree.push_back(new LinearBlendNodeSync(m_BindPose));	break;
+	case NodeType_::NodeType_Output:			v_Tree.push_back(new OutputNode(m_BindPose));				break;
+	case NodeType_::NodeType_Clip:				v_Tree.push_back(new ClipNode(m_BindPose));					break;
+	case NodeType_::NodeType_LinearBlend:		v_Tree.push_back(new LinearBlendNode(m_BindPose));			break;
+	case NodeType_::NodeType_LinearBlendSync:	v_Tree.push_back(new LinearBlendNodeSync(m_BindPose));		break;
+	case NodeType_::NodeType_Ragdoll:			v_Tree.push_back(new RagdollNode(m_BindPose));				break;
 	default:
-		return UINT32_MAX;
+		throw std::logic_error("Tried to create a non-existant node!");
 	}
 	return v_Tree.size() - 1u;
 }
@@ -358,8 +398,8 @@ void BlendTree::ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint3
 	v_Tree[receiverNodeID]->SetInput(v_Tree[inputNodeID1], v_Tree[inputNodeID2], v_Tree[inputNodeID3], v_Tree[inputNodeID4]);
 }
 
-void BlendTree::Update(float frameTime)
+void BlendTree::Update(float frameTime, bool& needsPhysicsUpdate)
 {
 	// Call the update on the root node to commence a post-order traversal
-	v_Tree[0]->Update(frameTime);
+	v_Tree[0]->Update(frameTime, needsPhysicsUpdate);
 }

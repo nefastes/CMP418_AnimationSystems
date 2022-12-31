@@ -64,6 +64,11 @@ void Physics::Update()
 	dynamics_world_->stepSimulation(update_time_step_, max_sub_steps_);
 }
 
+btDiscreteDynamicsWorld* Physics::GetWorld()
+{
+	return dynamics_world_;
+}
+
 const btRigidBody* Physics::CreateBoxBody(const btVector3& halfSize, btScalar mass)
 {
 	btCollisionShape* groundShape = new btBoxShape(halfSize);

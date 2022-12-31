@@ -400,6 +400,7 @@
     </ClCompile>
     <ClCompile Include="..\..\motion_clip_player.cpp" />
     <ClCompile Include="..\..\primitive_builder.cpp" />
+    <ClCompile Include="..\..\ragdoll.cpp" />
     <ClCompile Include="..\..\scene_app.cpp" />
     <ClCompile Include="..\..\main_vita.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -683,6 +684,7 @@
     <ClInclude Include="..\..\Animation3D.h" />
     <ClInclude Include="..\..\AnimationManager.h" />
     <ClInclude Include="..\..\primitive_builder.h" />
+    <ClInclude Include="..\..\ragdoll.h" />
     <ClInclude Include="..\..\UserInterface.h" />
     <ClInclude Include="..\..\BlendNode.h" />
     <ClInclude Include="..\..\gef_json_loader.h" />

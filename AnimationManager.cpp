@@ -8,7 +8,7 @@
 // No need to include gef::Platform because it is unused in this manager
 
 
-AsdfAnim::AnimationManager::AnimationManager(gef::Platform& platform) : r_Platform(platform)
+AsdfAnim::AnimationManager::AnimationManager(gef::Platform& platform) : r_Platform(platform), p_btDynamicWorld(nullptr), m_NeedsPhysicsUpdate(false)
 {
 }
 
@@ -16,14 +16,23 @@ AsdfAnim::AnimationManager::~AnimationManager()
 {
 }
 
+void AsdfAnim::AnimationManager::SetBtPhysicsWorld(btDiscreteDynamicsWorld* pbtDynamicWorld)
+{
+    p_btDynamicWorld = pbtDynamicWorld;
+}
+
 void AsdfAnim::AnimationManager::Update(float frameTime)
 {
     for (auto anim : v_LoadedAnimations2D)
         if(anim->IsActive())
             anim->Update(frameTime);
+    m_NeedsPhysicsUpdate = false;   // Reset in the event that all animations do not require physics anymore
     for (auto anim : v_LoadedAnimations3D)
         if (anim->IsActive())
+        {
             anim->Update(frameTime);
+            m_NeedsPhysicsUpdate |= anim->RequirePhysics();
+        }
 }
 
 
@@ -62,7 +71,19 @@ void AsdfAnim::AnimationManager::LoadAllGef3DFromFolder(const char* folderpath, 
             LoadAllGef3DFromFolder(entryPath.c_str(), recursiveSearch);
 
         if (!entryExt.compare(".scn") && entryName.find('@') == std::string::npos)  // compare() returns 0 when equal
+        {
             LoadGef3D(entryPath.c_str());
+
+            // Search for any ragdoll
+            if (!p_btDynamicWorld) continue;
+            for (const auto& ragdollEntry : std::filesystem::directory_iterator(folder))
+            {
+                const std::string& ragdollEntryPath(ragdollEntry.path().string());
+                const std::string& ragdollEntryExt(ragdollEntry.path().filename().extension().string());
+                if (!ragdollEntryExt.compare(".bullet"))
+                    v_LoadedAnimations3D.back()->LoadRagdoll(p_btDynamicWorld, ragdollEntryPath.c_str());
+            }
+        }
     }
 }
 
@@ -118,4 +139,9 @@ const std::vector<AsdfAnim::Animation2D*>& AsdfAnim::AnimationManager::GetAvaila
 const std::vector<AsdfAnim::Animation3D*>& AsdfAnim::AnimationManager::GetAvailable3DDatas()
 {
     return v_LoadedAnimations3D;
+}
+
+bool AsdfAnim::AnimationManager::RequirePhysics() const
+{
+    return m_NeedsPhysicsUpdate;
 }

@@ -174,6 +174,41 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
             ed::EndNode();
         };
         break;
+    case NodeType_::NodeType_Ragdoll:
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D* sentAnim) -> void {
+            ed::BeginNode(thisPtr->nodeID);
+            ImGui::Text("Linear Blend Node Synchronised");
+            RagdollNode* node = reinterpret_cast<RagdollNode*>(thisPtr->animationNode);
+
+            if (!node->IsRagdollValid())
+            {
+                ImGui::NewLine();
+                ImGui::Text("No ragdoll file was found or assigned for this model.");
+                ImGui::Text("Ragdoll is unavailable.");
+                ed::EndNode();
+                return;
+            }
+
+            ImGui::BeginGroup();
+            ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+            ImGui::Text("-> In1");
+            ed::EndPin();
+
+            bool r = node->IsActive();
+            if (ImGui::Checkbox("Activate Ragdoll", &r))
+                node->SetActive(r);
+
+            ImGui::EndGroup();
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+
+            ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+            ImGui::Text("Out ->");
+            ed::EndPin();
+            ImGui::EndGroup();
+            ed::EndNode();
+        };
+        break;
     default:
         break;
     }
@@ -489,22 +524,24 @@ void UI_NodeEditor::OnFrame(float deltaTime)
         }
         if (ImGui::MenuItem("Ragdoll Node"))
         {
-            //// Create a clip node
-            //BlendTree* blendTree = p_SentAnim->GetBlendTree();
-            //uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Ragdoll);
+            // Create a ragdoll node
+            BlendTree* blendTree = p_SentAnim->GetBlendTree();
+            uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Ragdoll);
+            RagdollNode* node = reinterpret_cast<RagdollNode*>(blendTree->GetNode(nodeID));
+            node->SetRagdoll(p_SentAnim->GetRagdoll());
 
-            //// Create the UI node
-            //int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
-            //UINode currentNode = {
-            //    blendTree->GetNode(nodeID),
-            //    uniqueId++,
-            //    {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-            //    {false, false, false, false},
-            //    uniqueId,
-            //    0
-            //};
-            //AssignDrawFunctionToUINode(currentNode);
-            //v_Nodes.push_back(std::move(currentNode));
+            // Create the UI node
+            int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+            UINode currentNode = {
+                node,
+                uniqueId++,
+                {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                {false, false, false, false},
+                uniqueId,
+                0
+            };
+            AssignDrawFunctionToUINode(currentNode);
+            v_Nodes.push_back(std::move(currentNode));
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();

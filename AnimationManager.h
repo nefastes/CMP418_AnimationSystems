@@ -3,6 +3,8 @@
 #include <string>
 #include <tuple>
 
+class btDiscreteDynamicsWorld;
+
 namespace gef
 {
 	class Platform;
@@ -22,6 +24,7 @@ namespace AsdfAnim
 	public:
 		AnimationManager(gef::Platform& rPlatform);
 		~AnimationManager();
+		void SetBtPhysicsWorld(btDiscreteDynamicsWorld* pbtDynamicWorld);
 
 		void Update(float frameTime);
 		void Draw2D(gef::SpriteRenderer* pRenderer2D);
@@ -40,11 +43,15 @@ namespace AsdfAnim
 		const std::vector<Animation2D*>& GetAvailable2DDatas();
 		const std::vector<Animation3D*>& GetAvailable3DDatas();
 
+		bool RequirePhysics() const;
+
 	private:
 		gef::Platform& r_Platform;
 		std::vector<Animation2D*>				v_LoadedAnimations2D;
 		std::vector<Animation3D*>				v_LoadedAnimations3D;
 		std::vector<const std::string*>			v_AvailableFiles;		// Storing the name as a string so it can be listed in the gui
+		btDiscreteDynamicsWorld*				p_btDynamicWorld;		// A pointer to any physics world that exist. Must be set to load ragdolls
+		bool									m_NeedsPhysicsUpdate;	// A bool that will be set to true if any animation requires a physics update
 	};
 
 }
