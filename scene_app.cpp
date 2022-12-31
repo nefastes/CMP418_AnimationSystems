@@ -68,6 +68,9 @@ void SceneApp::Init()
 	gui_animation_rotations_.resize(size3d);
 	gui_animation_scales_.resize(size3d, ImVec4(1.f, 1.f, 1.f, 0.f));
 	editor_.OnStart();
+
+	// Setup physics engine
+	physics_engine_.Init();
 }
 
 void SceneApp::CleanUp()
@@ -88,6 +91,7 @@ bool SceneApp::Update(float frame_time)
 	fps_ = 1.0f / frame_time;
 
 	input_manager_->Update();
+	physics_engine_.Update();
 	animation_manager_.Update(frame_time);
 
 	return true;

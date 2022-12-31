@@ -17,6 +17,8 @@
 #include "AnimationManager.h"
 #include "Animation.h"
 
+#include "Physics.h"
+
 // FRAMEWORK FORWARD DECLARATIONS
 namespace gef
 {
@@ -58,6 +60,9 @@ private:
 	std::vector<ImVec4> gui_animation_scales_;
 	bool editor_opened_;
 	UI_NodeEditor editor_;
+
+	// Physics
+	Physics physics_engine_;
 };
 
 #endif // _SCENE_APP_H
