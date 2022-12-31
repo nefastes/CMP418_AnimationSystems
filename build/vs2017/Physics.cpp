@@ -1,4 +1,6 @@
 #include "Physics.h"
+#include "maths/matrix44.h"
+#include "maths/quaternion.h"
 
 Physics::Physics(float updateTimeStep, int maxSubSteps) :
 	update_time_step_(updateTimeStep),
@@ -60,4 +62,61 @@ void Physics::Init()
 void Physics::Update()
 {
 	dynamics_world_->stepSimulation(update_time_step_, max_sub_steps_);
+}
+
+const btRigidBody* Physics::CreateBoxBody(const btVector3& halfSize, btScalar mass)
+{
+	btCollisionShape* groundShape = new btBoxShape(halfSize);
+
+	collision_shapes_.push_back(groundShape);
+
+	btTransform groundTransform;
+	groundTransform.setIdentity();
+	groundTransform.setOrigin(btVector3(0, -halfSize.y(), 0));
+
+	//rigidbody is dynamic if and only if mass is non zero, otherwise static
+	bool isDynamic = (mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic)
+		groundShape->calculateLocalInertia(mass, localInertia);
+
+	//using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
+	btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
+	btRigidBody* body = new btRigidBody(rbInfo);
+
+	//add the body to the dynamics world
+	dynamics_world_->addRigidBody(body);
+
+	return body;
+}
+
+gef::Matrix44 Physics::btTransform2Matrix(const btTransform & transform, bool convertUnits)
+{
+	gef::Matrix44 result;
+
+	btQuaternion rotation = transform.getRotation();
+	btVector3 position = transform.getOrigin();
+
+	result.Rotation(gef::Quaternion(rotation.x(), rotation.y(), rotation.z(), rotation.w()));
+	const float m_to_cm = 100.f;	// GEF uses centimeters and bullet uses meters, so convert to cm using this multiplicator
+	result.SetTranslation(gef::Vector4(position.x() * (convertUnits ? m_to_cm : 1.f), position.y() * (convertUnits ? m_to_cm : 1.f), position.z() * (convertUnits ? m_to_cm : 1.f)));
+
+	return result;
+}
+
+btTransform Physics::Matrix2btTransform(const gef::Matrix44 & mtx, bool convertUnits)
+{
+	gef::Vector4 mtx_position = mtx.GetTranslation();
+
+	gef::Quaternion mtx_rot;
+	mtx_rot.SetFromMatrix(mtx);
+
+	btTransform result;
+	const float cm_to_m = .01f;	// GEF uses centimeters and bullet uses meters, so convert to cm using this multiplicator
+	result.setOrigin(btVector3(mtx_position.x() * (convertUnits ? cm_to_m : 1.f), mtx_position.y() * (convertUnits ? cm_to_m : 1.f), mtx_position.z() * (convertUnits ? cm_to_m : 1.f)));
+	result.setRotation(btQuaternion(mtx_rot.x, mtx_rot.y, mtx_rot.z, mtx_rot.w));
+
+	return result;
 }

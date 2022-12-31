@@ -1,8 +1,22 @@
 #pragma once
 #include "btBulletDynamicsCommon.h"
 
-#define PHYSICS_DEFAULT_TIMESTEP (1.f / 60.f)
+#define PHYSICS_DEFAULT_TIMESTEP 0.0166666675f //(1.f / 60.f)
 #define PHYSICS_DEFAULT_MAXSUBSTEPS 1
+
+namespace gef
+{
+	class Matrix44;
+	class Mesh;
+	class MeshInstance;
+}
+
+struct PhysicsMesh
+{
+	gef::Mesh* Gef_Mesh;
+	gef::MeshInstance* Gef_MeshInstance;
+	const btRigidBody* Physics_Body;
+};
 
 class Physics
 {
@@ -13,6 +27,10 @@ public:
 	void Init();
 	void Update();
 
+	const btRigidBody* CreateBoxBody(const btVector3& halfSize, btScalar mass = 0.f);
+
+	static gef::Matrix44 btTransform2Matrix(const btTransform& transform, bool convertUnits = false);
+	static btTransform Matrix2btTransform(const gef::Matrix44& mtx, bool convertUnits = false);
 private:
 	float update_time_step_;
 	int max_sub_steps_;

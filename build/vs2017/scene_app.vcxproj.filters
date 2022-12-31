@@ -88,6 +88,9 @@
     <Filter Include="Header Files\bullet3\Extras\Serialize\BulletWorldImporter">
       <UniqueIdentifier>{101bd4ba-2bb9-49d3-987d-b18dc92f3299}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\GEF_Extras">
+      <UniqueIdentifier>{23246d90-4801-4930-af67-5db5cf4f3b85}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\main_d3d11.cpp">
@@ -133,9 +136,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\BlendNode.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\motion_clip_player.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\imgui\node-editor\application.cpp">
@@ -663,6 +663,12 @@
     <ClCompile Include="..\..\..\bullet3\Extras\Serialize\BulletWorldImporter\btWorldImporter.cpp">
       <Filter>Header Files\bullet3\Extras\Serialize\BulletWorldImporter</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\motion_clip_player.cpp">
+      <Filter>Header Files\GEF_Extras</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\primitive_builder.cpp">
+      <Filter>Header Files\GEF_Extras</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\scene_app.h">
@@ -708,15 +714,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\BlendNode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\gef_json_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\gef_texture_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\motion_clip_player.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\imgui\node-editor\application.h">
@@ -1492,6 +1489,18 @@
     </ClInclude>
     <ClInclude Include="..\..\..\bullet3\Extras\Serialize\BulletWorldImporter\btWorldImporter.h">
       <Filter>Header Files\bullet3\Extras\Serialize\BulletWorldImporter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\motion_clip_player.h">
+      <Filter>Header Files\GEF_Extras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\primitive_builder.h">
+      <Filter>Header Files\GEF_Extras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gef_json_loader.h">
+      <Filter>Header Files\GEF_Extras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\gef_texture_loader.h">
+      <Filter>Header Files\GEF_Extras</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

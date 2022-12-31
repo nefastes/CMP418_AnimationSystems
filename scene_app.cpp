@@ -23,6 +23,7 @@ SceneApp::SceneApp(gef::Platform& platform) :
 	Application(platform),
 	sprite_renderer_(NULL),
 	input_manager_(NULL),
+	primitive_builder_(platform),
 	font_(NULL),
 	animation_manager_(platform),
 	editor_opened_(false),
@@ -71,10 +72,31 @@ void SceneApp::Init()
 
 	// Setup physics engine
 	physics_engine_.Init();
+
+	// Add a floor mesh
+	btVector3 floor_halfsize = { 50.f, 1.f, 50.f };
+	const btRigidBody* floor_body = physics_engine_.CreateBoxBody(floor_halfsize);
+	gef::Mesh* floor_mesh = primitive_builder_.CreateBoxMesh(gef::Vector4(floor_halfsize.x(), floor_halfsize.y(), floor_halfsize.z()));
+	gef::MeshInstance* floor_gfx = new gef::MeshInstance();
+	floor_gfx->set_mesh(floor_mesh);
+	floor_gfx->set_transform(Physics::btTransform2Matrix(floor_body->getWorldTransform()));
+	PhysicsMesh floor = {
+		floor_mesh,
+		floor_gfx,
+		floor_body
+	};
+	objects_.push_back(std::move(floor));
 }
 
 void SceneApp::CleanUp()
 {
+	// Release objects
+	for (PhysicsMesh& mesh : objects_)
+	{
+		if (mesh.Gef_Mesh)			delete mesh.Gef_Mesh, mesh.Gef_Mesh = nullptr;
+		if (mesh.Gef_MeshInstance)	delete mesh.Gef_MeshInstance, mesh.Gef_MeshInstance = nullptr;
+	}
+
 	editor_.OnStop();
 
 	delete input_manager_;
@@ -102,6 +124,8 @@ void SceneApp::Render()
 	// draw meshes here
 	renderer_3d_->Begin();
 	animation_manager_.Draw3D(renderer_3d_);
+	for (const PhysicsMesh& mesh : objects_)
+		renderer_3d_->DrawMesh(*mesh.Gef_MeshInstance);
 	renderer_3d_->End();
 
 	// setup the sprite renderer, but don't clear the frame buffer

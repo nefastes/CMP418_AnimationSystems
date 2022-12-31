@@ -7,6 +7,7 @@
 #include <input/input_manager.h>
 #include <vector>
 #include <graphics/skinned_mesh_instance.h>
+#include "primitive_builder.h"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx11.h"
@@ -45,6 +46,7 @@ private:
 	gef::SpriteRenderer* sprite_renderer_;
 	gef::Font* font_;
 	gef::InputManager* input_manager_;
+	PrimitiveBuilder primitive_builder_;
 
 	float fps_;
 
@@ -63,6 +65,7 @@ private:
 
 	// Physics
 	Physics physics_engine_;
+	std::vector<PhysicsMesh> objects_;
 };
 
 #endif // _SCENE_APP_H
