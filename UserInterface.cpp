@@ -395,7 +395,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                     }
                     assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
 
-                CONNECT_BLENDNODES:
                     // Connect blendnodes
                     for (uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
                         if (endNode->inputPinIDs[i] == endPinId)
@@ -560,7 +559,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
             // Remove any link with this node
             // Find any link with a start ID that corresponds to this node's output ID
             // Find any link with an end ID that corresponds to any of this node's input IDs
-            for (uint32_t i = 0u; i < v_Links.size(); ++i)
+            for (int i = 0; i < v_Links.size(); ++i)
             {
                 LinkInfo& link = v_Links[i];
                 // Do not break if a link is found as there might be more

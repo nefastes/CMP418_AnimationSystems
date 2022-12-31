@@ -399,6 +399,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|PSVita'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\motion_clip_player.cpp" />
+    <ClCompile Include="..\..\Physics.cpp" />
     <ClCompile Include="..\..\primitive_builder.cpp" />
     <ClCompile Include="..\..\ragdoll.cpp" />
     <ClCompile Include="..\..\scene_app.cpp" />
@@ -411,7 +412,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\UserInterface.cpp" />
-    <ClCompile Include="Physics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\bullet3\Extras\Serialize\BulletFileLoader\bChunk.h" />
@@ -683,6 +683,7 @@
     <ClInclude Include="..\..\Animation2D.h" />
     <ClInclude Include="..\..\Animation3D.h" />
     <ClInclude Include="..\..\AnimationManager.h" />
+    <ClInclude Include="..\..\Physics.h" />
     <ClInclude Include="..\..\primitive_builder.h" />
     <ClInclude Include="..\..\ragdoll.h" />
     <ClInclude Include="..\..\UserInterface.h" />
@@ -691,7 +692,6 @@
     <ClInclude Include="..\..\gef_texture_loader.h" />
     <ClInclude Include="..\..\motion_clip_player.h" />
     <ClInclude Include="..\..\scene_app.h" />
-    <ClInclude Include="Physics.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\imgui\node-editor\config.h.in" />

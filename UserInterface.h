@@ -10,7 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - Radgdoll node
 // - Add a transition node and a Button node to support different transition types
 // - BUG: ResetFor does not reset node placement. I.E. the output node is in the same position for all tabs
 // - I had an occurence of spawning a node with a link, can't reproduce

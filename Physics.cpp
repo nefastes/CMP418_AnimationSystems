@@ -31,7 +31,7 @@ Physics::~Physics()
 		delete obj;
 	}
 
-	for (uint32_t i = 0u; i < collision_shapes_.size(); ++i)
+	for (int i = 0; i < collision_shapes_.size(); ++i)
 		if (collision_shapes_[i]) delete collision_shapes_[i], collision_shapes_[i] = nullptr;
 	collision_shapes_.clear();
 

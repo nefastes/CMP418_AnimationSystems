@@ -171,7 +171,7 @@ void SceneApp::DrawHUD()
 	const std::vector<const std::string*>& availableNames = animation_manager_.GetAvailableFileNames();
 	const std::vector<AsdfAnim::Animation2D*>& available2D = animation_manager_.GetAvailable2DDatas();
 	const std::vector<AsdfAnim::Animation3D*>& available3D = animation_manager_.GetAvailable3DDatas();
-	ImGui::Begin("Animation System"/*, &imgui, ImGuiWindowFlags_NoTitleBar*/);
+	ImGui::Begin("Animation Browser");
 	if (ImGui::BeginTabBar("tabs"))
 	{
 		for (uint32_t i = 0; i < availableNames.size(); ++i)
@@ -308,7 +308,7 @@ void SceneApp::DrawHUD()
 
 	if (editor_opened_)
 	{
-		if (ImGui::Begin("Content", &editor_opened_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus))
+		if (ImGui::Begin("Animation Editor", &editor_opened_, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBringToFrontOnFocus))
 		{
 			//Application_Frame();
 			editor_.OnFrame(NULL);

@@ -180,9 +180,6 @@
     <ClCompile Include="..\..\UserInterface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Physics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\bullet3\src\BulletCollision\BroadphaseCollision\btAxisSweep3.cpp">
       <Filter>Header Files\bullet3\BulletCollision\BroadphaseCollision</Filter>
     </ClCompile>
@@ -672,6 +669,9 @@
     <ClCompile Include="..\..\ragdoll.cpp">
       <Filter>Header Files\GEF_Extras</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Physics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\scene_app.h">
@@ -765,9 +765,6 @@
       <Filter>Header Files\imgui\node-editor\utilities</Filter>
     </ClInclude>
     <ClInclude Include="..\..\UserInterface.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\bullet3\src\BulletCollision\BroadphaseCollision\btAxisSweep3.h">
@@ -1507,6 +1504,9 @@
     </ClInclude>
     <ClInclude Include="..\..\ragdoll.h">
       <Filter>Header Files\GEF_Extras</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Physics.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
