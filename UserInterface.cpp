@@ -452,8 +452,12 @@ void UI_NodeEditor::OnFrame(float deltaTime)
     // Handle node creation
     ed::Suspend();
     static ed::NodeId tempNodeID = NULL;
+    static ImVec2 mousePos = {0, 0};
     if (ed::ShowBackgroundContextMenu())
+    {
         ImGui::OpenPopup("NCM");
+        mousePos = ImGui::GetMousePos();
+    }
     else if (ed::ShowNodeContextMenu(&tempNodeID))
         ImGui::OpenPopup("NDM");
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
@@ -478,6 +482,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 0
             };
             AssignDrawFunctionToUINode(currentNode);
+            ed::SetNodePosition(currentNode.nodeID, ed::ScreenToCanvas(mousePos));
             v_Nodes.push_back(std::move(currentNode));
             ImGui::CloseCurrentPopup();
         }
@@ -498,6 +503,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 0
             };
             AssignDrawFunctionToUINode(currentNode);
+            ed::SetNodePosition(currentNode.nodeID, ed::ScreenToCanvas(mousePos));
             v_Nodes.push_back(std::move(currentNode));
             ImGui::CloseCurrentPopup();
         }
@@ -518,6 +524,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 0
             };
             AssignDrawFunctionToUINode(currentNode);
+            ed::SetNodePosition(currentNode.nodeID, ed::ScreenToCanvas(mousePos));
             v_Nodes.push_back(std::move(currentNode));
             ImGui::CloseCurrentPopup();
         }
@@ -540,6 +547,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 0
             };
             AssignDrawFunctionToUINode(currentNode);
+            ed::SetNodePosition(currentNode.nodeID, ed::ScreenToCanvas(mousePos));
             v_Nodes.push_back(std::move(currentNode));
             ImGui::CloseCurrentPopup();
         }
