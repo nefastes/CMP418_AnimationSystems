@@ -8,163 +8,168 @@
 // Reserve space for up to 1000 nodes. It seems extreme to add more nodes than this.
 #define BLENDTREE_MAXNODES 1000
 
-enum class NodeType_
+namespace AsdfAnim
 {
-	NodeType_Undefined = -1,
-	NodeType_Output,
-	NodeType_Clip,
-	NodeType_LinearBlend,
-	NodeType_LinearBlendSync,
-	NodeType_Transition,
-	NodeType_Ragdoll
-};
 
-enum class TransitionType_
-{
-	TransitionType_Undefined = -1,
-	TransitionType_Frozen,
-	TransitionType_Frozen_Sync,
-	TransitionType_Smooth,
-	TransitionType_Smooth_Sync
-};
+	enum class NodeType_
+	{
+		NodeType_Undefined = -1,
+		NodeType_Output,
+		NodeType_Clip,
+		NodeType_LinearBlend,
+		NodeType_LinearBlendSync,
+		NodeType_Transition,
+		NodeType_Ragdoll
+	};
 
-class BlendNode
-{
-public:
-	BlendNode(const gef::SkeletonPose& bindPose);
-	virtual bool SetInput(uint32_t slot, BlendNode* input);
-	void SetInput(BlendNode* input1, BlendNode* input2);
-	void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
-	void AddInput(BlendNode* input);
-	void RemoveInput(BlendNode* input);
-	virtual bool Update(float frameTime, bool& needPhysicsUpdate);
-	virtual bool ProcessData(float frameTime) = 0;
-	const gef::SkeletonPose& GetPose();
-	const NodeType_& GetType() const { return m_Type; }
-	const std::array<BlendNode*, 4>& GetInputs() const { return a_Inputs; }
+	enum class TransitionType_
+	{
+		TransitionType_Undefined = -1,
+		TransitionType_Frozen,
+		TransitionType_Frozen_Sync,
+		TransitionType_Smooth,
+		TransitionType_Smooth_Sync
+	};
 
-protected:
-	std::array<BlendNode*, 4> a_Inputs; // Shouldnt need more than 4 inputs
-	const gef::SkeletonPose& r_BindPose;
-	gef::SkeletonPose m_BlendedPose;
-	NodeType_ m_Type;
-};
+	class BlendNode
+	{
+	public:
+		BlendNode(const gef::SkeletonPose& bindPose);
+		virtual bool SetInput(uint32_t slot, BlendNode* input);
+		void SetInput(BlendNode* input1, BlendNode* input2);
+		void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
+		void AddInput(BlendNode* input);
+		void RemoveInput(BlendNode* input);
+		virtual bool Update(float frameTime, bool& needPhysicsUpdate);
+		virtual bool ProcessData(float frameTime) = 0;
+		const gef::SkeletonPose& GetPose();
+		const NodeType_& GetType() const { return m_Type; }
+		const std::array<BlendNode*, 4>& GetInputs() const { return a_Inputs; }
 
-struct OutputNode : public BlendNode
-{
-	OutputNode(const gef::SkeletonPose& bindPose);
-	bool ProcessData(float frameTime) final override;
-};
+	protected:
+		std::array<BlendNode*, 4> a_Inputs; // Shouldnt need more than 4 inputs
+		const gef::SkeletonPose& r_BindPose;
+		gef::SkeletonPose m_BlendedPose;
+		NodeType_ m_Type;
+	};
 
-class ClipNode : public BlendNode
-{
-public:
-	ClipNode(const gef::SkeletonPose& bindPose);
-	bool ProcessData(float frameTime) final override;
-	void SetPlaybackSpeed(float speed);
-	void SetLooping(bool loop);
-	void SetClip(const AsdfAnim::Clip* clip);
-	float GetPlaybackSpeed();
-	bool IsLooping();
-	const AsdfAnim::Clip* GetClip() const;
-	void SetAnimationTime(float time) { m_AnimationTime = time; }
-	float GetAnimationTime() { return m_AnimationTime; }
-	void ResetAnimationTime();
+	struct OutputNode : public BlendNode
+	{
+		OutputNode(const gef::SkeletonPose& bindPose);
+		bool ProcessData(float frameTime) final override;
+	};
 
-private:
-	float m_AnimationTime;
-	float m_ClipPlaybackSpeed;
-	bool m_ClipLooping;
-	const AsdfAnim::Clip* p_Clip;
-};
+	class ClipNode : public BlendNode
+	{
+	public:
+		ClipNode(const gef::SkeletonPose& bindPose);
+		bool ProcessData(float frameTime) final override;
+		void SetPlaybackSpeed(float speed);
+		void SetLooping(bool loop);
+		void SetClip(const AsdfAnim::Clip* clip);
+		float GetPlaybackSpeed();
+		bool IsLooping();
+		const AsdfAnim::Clip* GetClip() const;
+		void SetAnimationTime(float time) { m_AnimationTime = time; }
+		float GetAnimationTime() { return m_AnimationTime; }
+		void ResetAnimationTime();
 
-class LinearBlendNode : public BlendNode
-{
-public:
-	LinearBlendNode(const gef::SkeletonPose& bindPose);
-	bool ProcessData(float frameTime) override;
-	void SetBlendValue(float pBlendVal);
-	float* GetBlendValue();
+	private:
+		float m_AnimationTime;
+		float m_ClipPlaybackSpeed;
+		bool m_ClipLooping;
+		const AsdfAnim::Clip* p_Clip;
+	};
 
-protected:
-	float m_BlendValue;
-};
+	class LinearBlendNode : public BlendNode
+	{
+	public:
+		LinearBlendNode(const gef::SkeletonPose& bindPose);
+		bool ProcessData(float frameTime) override;
+		void SetBlendValue(float pBlendVal);
+		float* GetBlendValue();
 
-class LinearBlendNodeSync : public LinearBlendNode
-{
-public:
-	LinearBlendNodeSync(const gef::SkeletonPose& bindPose);
-	bool ProcessData(float frameTime) override;
-	bool SetInput(uint32_t slot, BlendNode* input) override;
-	void CalculateClipsMaxMin();
-	void CalculateBlendedSyncPose();
+	protected:
+		float m_BlendValue;
+	};
 
-protected:
-	std::array<float, 2> a_ClipsMaxMin;
-	std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
-};
+	class LinearBlendNodeSync : public LinearBlendNode
+	{
+	public:
+		LinearBlendNodeSync(const gef::SkeletonPose& bindPose);
+		bool ProcessData(float frameTime) override;
+		bool SetInput(uint32_t slot, BlendNode* input) override;
+		void CalculateClipsMaxMin();
+		void CalculateBlendedSyncPose();
 
-class TransitionNode : public LinearBlendNodeSync
-{
-public:
-	TransitionNode(const gef::SkeletonPose& bindPose);
-	bool Update(float frameTime, bool& needPhysicsUpdate) final override;
-	bool ProcessData(float frameTime) final override;
-	bool SetInput(uint32_t slot, BlendNode* input) final override;
-	void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
-	const TransitionType_& GetTransitionType() { return m_TransitionType; }
-	void ToggleTransition();
-	bool IsTransitioning() { return m_Transitioning; }
-	void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }
-	float GetTransitionTime() { return m_TransitionTime; }
-	void Reset();
+	protected:
+		std::array<float, 2> a_ClipsMaxMin;
+		std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
+	};
 
-private:
-	TransitionType_ m_TransitionType;
-	bool m_Transitioning;
-	float m_TransitionTime, m_CurrentTime;
-};
+	class TransitionNode : public LinearBlendNodeSync
+	{
+	public:
+		TransitionNode(const gef::SkeletonPose& bindPose);
+		bool Update(float frameTime, bool& needPhysicsUpdate) final override;
+		bool ProcessData(float frameTime) final override;
+		bool SetInput(uint32_t slot, BlendNode* input) final override;
+		void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
+		const TransitionType_& GetTransitionType() { return m_TransitionType; }
+		void StartTransition();
+		bool IsTransitioning() { return m_Transitioning; }
+		void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }
+		float GetTransitionTime() { return m_TransitionTime; }
+		void Reset();
 
-class RagdollNode : public BlendNode
-{
-public:
-	RagdollNode(const gef::SkeletonPose& bindPose);
-	bool Update(float frameTime, bool& needPhysicsUpdate) final override;
-	bool ProcessData(float frameTime) final override;
-	void SetRagdoll(Ragdoll* pRagdoll);
+	private:
+		TransitionType_ m_TransitionType;
+		bool m_Transitioning;
+		float m_TransitionTime, m_CurrentTime;
+	};
 
-	bool IsActive() { return m_Active; }
-	void SetActive(bool a) { m_Active = a; }
+	class RagdollNode : public BlendNode
+	{
+	public:
+		RagdollNode(const gef::SkeletonPose& bindPose);
+		bool Update(float frameTime, bool& needPhysicsUpdate) final override;
+		bool ProcessData(float frameTime) final override;
+		void SetRagdoll(Ragdoll* pRagdoll);
 
-	bool IsRagdollValid() { return p_Ragdoll != nullptr; }
+		bool IsActive() { return m_Active; }
+		void SetActive(bool a) { m_Active = a; }
 
-private:
-	Ragdoll* p_Ragdoll;
-	bool m_Active;
-};
+		bool IsRagdollValid() { return p_Ragdoll != nullptr; }
 
-class BlendTree
-{
-public:
-	BlendTree(const gef::SkeletonPose& bindPose);
-	~BlendTree();
-	const gef::SkeletonPose& GetOutputPose();
+	private:
+		Ragdoll* p_Ragdoll;
+		bool m_Active;
+	};
 
-	uint32_t AddNode(BlendNode* node);
-	uint32_t AddNode(NodeType_ type);
-	void RemoveAndFreeNode(BlendNode* node);
-	BlendNode* GetNode(uint32_t ID);
-	void ConnectToRoot(uint32_t inputNodeID);
-	void ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID);
-	void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID);
-	void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID);
+	class BlendTree
+	{
+	public:
+		BlendTree(const gef::SkeletonPose& bindPose);
+		~BlendTree();
+		const gef::SkeletonPose& GetOutputPose();
 
-	void Update(float frameTime, bool& needsPhysicsUpdate);
+		uint32_t AddNode(BlendNode* node);
+		uint32_t AddNode(NodeType_ type);
+		void RemoveAndFreeNode(BlendNode* node);
+		BlendNode* GetNode(uint32_t ID);
+		void ConnectToRoot(uint32_t inputNodeID);
+		void ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID);
+		void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID);
+		void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID);
 
-	const std::vector<BlendNode*>& GetTree() const { return v_Tree; }
-	const gef::SkeletonPose& GetBindPose() const { return m_BindPose; }
+		void Update(float frameTime, bool& needsPhysicsUpdate);
 
-private:
-	const gef::SkeletonPose& m_BindPose;
-	std::vector<BlendNode*> v_Tree;
-};
+		const std::vector<BlendNode*>& GetTree() const { return v_Tree; }
+		const gef::SkeletonPose& GetBindPose() const { return m_BindPose; }
+
+	private:
+		const gef::SkeletonPose& m_BindPose;
+		std::vector<BlendNode*> v_Tree;
+	};
+
+}

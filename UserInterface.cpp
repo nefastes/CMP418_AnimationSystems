@@ -1,4 +1,5 @@
 #include "UserInterface.h"
+using namespace AsdfAnim;
 
 UI_NodeEditor::UINode* UI_NodeEditor::FindUINodeFromAnimationNode(BlendNode* const& itemToSearch)
 {
@@ -50,7 +51,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
     switch (node.animationNode->GetType())
     {
     case NodeType_::NodeType_Output:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Output Node");
             ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
@@ -60,7 +61,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_Clip:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Clip Node");
             ImGui::BeginGroup();
@@ -119,7 +120,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_LinearBlend:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Linear Blend Node");
             ImGui::BeginGroup();
@@ -147,7 +148,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_LinearBlendSync:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Linear Blend Node Synchronised");
             ImGui::BeginGroup();
@@ -175,7 +176,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_Transition:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Linear Blend Node Synchronised");
             ImGui::BeginGroup();
@@ -206,11 +207,8 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
             ImGui::PopItemWidth();
 
             ImGui::PushItemWidth(100);
-            bool start = blendNode->IsTransitioning();
-            static std::array<std::string, 2> startStopButtonName = { "Start", "Stop" };
-            if (ImGui::Button(startStopButtonName[start].c_str()))
-                blendNode->ToggleTransition();
-
+            if (ImGui::Button("Start"))
+                blendNode->StartTransition();
             if (ImGui::Button("Reset"))
                 blendNode->Reset();
             ImGui::PopItemWidth();
@@ -244,7 +242,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         };
         break;
     case NodeType_::NodeType_Ragdoll:
-        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+        node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Ragdoll Node");
             RagdollNode* node = reinterpret_cast<RagdollNode*>(thisPtr->animationNode);
@@ -310,7 +308,7 @@ void UI_NodeEditor::OnStop()
     p_Context = nullptr;
 }
 
-void UI_NodeEditor::ResetFor(AsdfAnim::Animation3D* anim)
+void UI_NodeEditor::ResetFor(Animation3D* anim)
 {
     // Check if the logic wasn't already set for this animation
     if (p_SentAnim == anim) return;

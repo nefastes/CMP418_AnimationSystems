@@ -30,13 +30,13 @@ struct UI_NodeEditor :
     // Below are several utility functions tied to this structure
     struct UINode
     {
-        BlendNode* animationNode;
+        AsdfAnim::BlendNode* animationNode;
         ed::NodeId nodeID;
         std::array<ed::PinId, 4> inputPinIDs;
         ed::PinId outputPinID;
         std::function<void(UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim)> Draw;
     };
-    UINode* FindUINodeFromAnimationNode(BlendNode* const& itemToSearch);
+    UINode* FindUINodeFromAnimationNode(AsdfAnim::BlendNode* const& itemToSearch);
     UINode* FindUINodeFromOutputPinID(const ed::PinId& itemToSearch);
     UINode* FindUINodeFromInputPinID(const ed::PinId& itemToSearch);
     UINode* FindUINodeFromNodeID(const ed::NodeId& itemToSearch);

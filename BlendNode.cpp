@@ -1,5 +1,7 @@
 #include "BlendNode.h"
 #include "animation/animation.h"
+using namespace AsdfAnim;
+
 BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_BindPose(bindPose), m_BlendedPose(bindPose), m_Type(NodeType_::NodeType_Undefined)
 {
 }
@@ -174,7 +176,7 @@ LinearBlendNode::LinearBlendNode(const gef::SkeletonPose& bindPose) : BlendNode(
 bool LinearBlendNode::ProcessData(float frameTime)
 {
 	// This blend node only process the two first inputs
-	if(a_Inputs[0] && a_Inputs[1])			m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+	if (a_Inputs[0] && a_Inputs[1])			m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
 	else									return false;
@@ -381,7 +383,7 @@ bool TransitionNode::SetInput(uint32_t slot, BlendNode* input)
 	return BlendNode::SetInput(slot, input);
 }
 
-void TransitionNode::ToggleTransition()
+void TransitionNode::StartTransition()
 {
 	// If no transition was defined, make it instant
 	if (m_TransitionType == TransitionType_::TransitionType_Undefined)
@@ -389,6 +391,8 @@ void TransitionNode::ToggleTransition()
 		m_CurrentTime = m_TransitionTime;
 		return;
 	}
+
+	Reset();
 
 	// If the transition is synchronised, align the second input clock to the first one
 	if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
@@ -401,7 +405,7 @@ void TransitionNode::ToggleTransition()
 	}
 
 	// Only start a transition if two inputs are available
-	m_Transitioning = !m_Transitioning && a_Inputs[0] && a_Inputs[1];
+	m_Transitioning = a_Inputs[0] && a_Inputs[1];
 }
 
 void TransitionNode::Reset()
