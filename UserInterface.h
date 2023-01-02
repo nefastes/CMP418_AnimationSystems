@@ -10,8 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - BUG: ResetFor does not reset node placement. I.E. the output node is in the same position for all tabs
-// - Get rid of usedInputPinIDs ?
 // - Put BlenNodes inside namespace AsdfAnim::
 // - Code cleanup, remove unecessary things and move one-line functions to headers
 // 
@@ -35,7 +33,6 @@ struct UI_NodeEditor :
         BlendNode* animationNode;
         ed::NodeId nodeID;
         std::array<ed::PinId, 4> inputPinIDs;
-        std::array<bool, 4> usedInputPinIDs;
         ed::PinId outputPinID;
         std::function<void(UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim)> Draw;
     };

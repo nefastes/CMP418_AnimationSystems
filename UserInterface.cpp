@@ -288,16 +288,6 @@ void UI_NodeEditor::RemoveLink(const LinkInfo & link)
     // Remove animation input
     link.nodeWithInputPin->animationNode->RemoveInput(link.nodeWithOutputPin->animationNode);
 
-    // Free input slot
-    for (uint8_t i = 0u; i < link.nodeWithInputPin->inputPinIDs.size(); ++i)
-    {
-        if (link.nodeWithInputPin->inputPinIDs[i] == link.endPinId)
-        {
-            link.nodeWithInputPin->usedInputPinIDs[i] = false;
-            break;
-        }
-    }
-
     // Delete link
     v_Links.erase(&link);
 }
@@ -352,7 +342,6 @@ void UI_NodeEditor::ResetFor(AsdfAnim::Animation3D* anim)
             treeToDraw[i],
             uniqueId++,
             {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-            {false, false, false, false},
             uniqueId++,
             0
         };
@@ -393,9 +382,7 @@ void UI_NodeEditor::ResetFor(AsdfAnim::Animation3D* anim)
             // needs to correspond to where the link ends on the node inputs
             // For example, if the input is in slot 3 of the nodeInputs array, it should be linked to the third input of the UI node
             // If the inputs slot of the UINode was already used then there is a logic error
-            assert(!endNode->usedInputPinIDs[i]);
             endPinID = endNode->inputPinIDs[i];
-            endNode->usedInputPinIDs[i] = true;
 
             // Add the link
             v_Links.push_back({ ed::LinkId(m_NextLinkId++), startPinID, endPinID, endNode, startNode });
@@ -470,26 +457,27 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                         // Swap pin ids for the following logic
                         std::swap(startPinId, endPinId);
                     }
-                    assert(endNode && startNode);                               // If they couldn't be found there is a logic error, it's not possible to link inexistant nodes
 
-                    // Connect blendnodes
-                    bool inputAccepted = false;
-                    for (uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
-                        if (endNode->inputPinIDs[i] == endPinId)
-                        {
-                            RemoveLinkWithEndNodeID(endPinId);
-                            inputAccepted = endNode->animationNode->SetInput(i, startNode->animationNode); // Link the two nodes
-                            endNode->usedInputPinIDs[i] = inputAccepted;
-                            break;
-                        }
-
-                    if (inputAccepted)
+                    if (endNode && startNode)   // If they couldn't be found there the user probably tried to link to inputs or two outputs together
                     {
-                        // Since we accepted new link, lets add one to our list of links.
-                        v_Links.push_back({ ed::LinkId(m_NextLinkId++), startPinId, endPinId, endNode, startNode });
+                        // Connect blendnodes
+                        bool inputAccepted = false;
+                        for (uint8_t i = 0u; i < endNode->inputPinIDs.size(); ++i)
+                            if (endNode->inputPinIDs[i] == endPinId)
+                            {
+                                RemoveLinkWithEndNodeID(endPinId);
+                                inputAccepted = endNode->animationNode->SetInput(i, startNode->animationNode); // Link the two nodes
+                                break;
+                            }
 
-                        // Draw new link.
-                        ed::Link(v_Links.back().Id, v_Links.back().startPinId, v_Links.back().endPinId);
+                        if (inputAccepted)
+                        {
+                            // Since we accepted new link, lets add one to our list of links.
+                            v_Links.push_back({ ed::LinkId(m_NextLinkId++), startPinId, endPinId, endNode, startNode });
+
+                            // Draw new link.
+                            ed::Link(v_Links.back().Id, v_Links.back().startPinId, v_Links.back().endPinId);
+                        }
                     }
                 }
 
@@ -557,7 +545,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 clipNode,
                 uniqueId++,
                 {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-                {false, false, false, false},
                 uniqueId,
                 0
             };
@@ -578,7 +565,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 blendTree->GetNode(nodeID),
                 uniqueId++,
                 {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-                {false, false, false, false},
                 uniqueId,
                 0
             };
@@ -599,7 +585,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 blendTree->GetNode(nodeID),
                 uniqueId++,
                 {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-                {false, false, false, false},
                 uniqueId,
                 0
             };
@@ -620,7 +605,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 blendTree->GetNode(nodeID),
                 uniqueId++,
                 {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-                {false, false, false, false},
                 uniqueId,
                 0
             };
@@ -643,7 +627,6 @@ void UI_NodeEditor::OnFrame(float deltaTime)
                 node,
                 uniqueId++,
                 {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
-                {false, false, false, false},
                 uniqueId,
                 0
             };
