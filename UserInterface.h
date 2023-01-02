@@ -13,12 +13,13 @@ namespace ed = ax::NodeEditor;
 // - BUG: ResetFor does not reset node placement. I.E. the output node is in the same position for all tabs
 // - Get rid of usedInputPinIDs ?
 // - Put BlenNodes inside namespace AsdfAnim::
+// - Code cleanup, remove unecessary things and move one-line functions to headers
 // 
 // IF THERE IS TIME LEFTOVER
 // - 2D animation JSON to binary converter
-// - Figure out how ImVector works properly and maybe take advantage of it to change it for v_Nodes
 // - Add a blend tree for 2D rigged animations
 // - Add support for the node editor with 2D animations
+// - Figure out how ImVector works properly and maybe take advantage of it to change it for v_Nodes
 ////
 
 struct UI_NodeEditor :
@@ -61,10 +62,9 @@ struct UI_NodeEditor :
 
     // Editor main functions
     // These are used to create, run, reset and destroy the editor properly
-    void OnStart() override;
-    void OnStop() override;
+    void OnStop() final override;
     void ResetFor(AsdfAnim::Animation3D* anim);
-    void OnFrame(float deltaTime) override;
+    void OnFrame(float deltaTime) final override;
 
     // Data
     ed::EditorContext*      p_Context = nullptr;    // Editor context, required to trace a editor state.
@@ -73,4 +73,5 @@ struct UI_NodeEditor :
     int                     m_NextLinkId = 100;     // Counter to help generate link ids. In real application this will probably based on pointer to user data structure.
     AsdfAnim::Animation3D*  p_SentAnim = nullptr;
     std::vector<UINode>     v_Nodes;
+    std::unordered_map<std::string, ed::EditorContext*> map_Contexts;
 };

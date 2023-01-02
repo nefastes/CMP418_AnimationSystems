@@ -313,23 +313,31 @@ void UI_NodeEditor::RemoveLinkWithEndNodeID(const ed::PinId & idToSearch)
         }
 }
 
-void UI_NodeEditor::OnStart()
-{
-    ed::Config config;
-    config.SettingsFile = "UI_NodeEditor.json";
-    p_Context = ed::CreateEditor(&config);
-}
-
 void UI_NodeEditor::OnStop()
 {
-    ed::DestroyEditor(p_Context);
+    for(std::pair<const std::string, ed::EditorContext*>& context : map_Contexts)
+        ed::DestroyEditor(context.second);
+    p_Context = nullptr;
 }
 
-void UI_NodeEditor::ResetFor(AsdfAnim::Animation3D * anim)
+void UI_NodeEditor::ResetFor(AsdfAnim::Animation3D* anim)
 {
     // Check if the logic wasn't already set for this animation
     if (p_SentAnim == anim) return;
 
+    // Reset context
+    // This allows to keep nodes in the correct places
+    std::string contextName = anim->GetFileName() + ".json";
+    if (map_Contexts.find(contextName) == map_Contexts.end())
+    {
+        auto it = map_Contexts.insert({ std::move(contextName), nullptr }).first;   // Need to hack it a bit to reuse the same memory for th econfig file name
+        ed::Config config;
+        config.SettingsFile = it->first.data();
+        p_Context = it->second = ed::CreateEditor(&config);
+    }
+    else p_Context = map_Contexts[contextName];
+
+    // Reset data
     p_SentAnim = anim;
     v_Links.clear();
     v_Nodes.clear();
