@@ -11,8 +11,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
-AsdfAnim::Animation3D::Animation3D() : p_Scene(nullptr), p_Mesh(nullptr), p_MeshInstance(nullptr), p_CurrentAnimation(nullptr), m_BlendInfo{},
-m_Activeplayer(&m_AnimationPlayers[0]), m_BodyVelociy(0.f), p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
+AsdfAnim::Animation3D::Animation3D() : p_Scene(nullptr), p_Mesh(nullptr), p_MeshInstance(nullptr), p_CurrentAnimation(nullptr),
+m_BodyVelociy(0.f), p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
 {
 }
 
@@ -61,13 +61,6 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
     gef::Matrix44 identity;
     identity.SetIdentity();
     p_MeshInstance->set_transform(identity);
-    for (uint32_t i = 0u; i < m_AnimationPlayers.size(); ++i)
-    {
-        m_AnimationPlayers[i].Init(p_MeshInstance->bind_pose());
-        m_AnimationPlayers[i].set_looping(true);
-        m_AnimationPlayers[i].set_anim_time(0.f);
-    }
-    m_BlendedPose = p_MeshInstance->bind_pose();
 
     // Load all the animations for that filname
     for (const auto& entry : std::filesystem::directory_iterator(file.parent_path()))
@@ -109,7 +102,6 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
     // TODO: Handle the case of no animation loaded, should only display 3d mesh and maybe a message box saying no animation was loaded
     // Initialise the first clip player on the first loaded animation
     p_CurrentAnimation = &v_Clips.front();
-    m_AnimationPlayers[0].set_clip(p_CurrentAnimation->clip);
 
     // Init blend tree
     p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
@@ -135,20 +127,6 @@ void AsdfAnim::Animation3D::Update(float frameTime)
 void AsdfAnim::Animation3D::Draw(gef::Renderer3D* renderer) const
 {
     renderer->DrawSkinnedMesh(*p_MeshInstance, p_MeshInstance->bone_matrices());
-}
-
-void AsdfAnim::Animation3D::TransitionToAnimation(const size_t animIndex, float transitionTime, TransitionType transitionType)
-{
-    // Signal the transition
-    m_BlendInfo.blend = true;
-    m_BlendInfo.blendEndTime = transitionTime;
-    m_BlendInfo.blendType = transitionType;
-    ++m_BlendInfo.blendClipPlayerIndex;
-    m_BlendInfo.blendClipPlayerIndex *= static_cast<uint32_t>(m_BlendInfo.blendClipPlayerIndex < m_AnimationPlayers.size());
-
-    p_CurrentAnimation = &v_Clips[animIndex];
-    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_clip(p_CurrentAnimation->clip);
-    m_AnimationPlayers[m_BlendInfo.blendClipPlayerIndex].set_anim_time(0.f);
 }
 
 const AsdfAnim::Clip * AsdfAnim::Animation3D::GetClip(const size_t animIndex) const

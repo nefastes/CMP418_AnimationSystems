@@ -37,7 +37,6 @@ namespace AsdfAnim
 		void Draw(gef::Renderer3D* renderer) const;
 
 		const std::vector<std::string>& AvailableClips() const { return v_AvailableClips; }
-		void TransitionToAnimation(const size_t animIndex, float transitionTime, TransitionType transitionType);
 		const Clip* GetClip(const size_t animIndex) const;
 		const gef::Matrix44& GetMeshTransform();
 		void SetMeshTransform(const gef::Matrix44& transform);
@@ -60,17 +59,6 @@ namespace AsdfAnim
 		std::vector<std::string> v_AvailableClips;
 		Clip* p_CurrentAnimation;
 		std::string s_Filename;
-
-		std::array<MotionClipPlayer, 2> m_AnimationPlayers;
-		MotionClipPlayer* m_Activeplayer;
-		gef::SkeletonPose m_BlendedPose;
-		struct Transition {
-			bool blend;
-			float blendClock;
-			float blendEndTime;
-			TransitionType blendType;
-			uint32_t blendClipPlayerIndex;
-		} m_BlendInfo;
 
 		float m_BodyVelociy;
 
