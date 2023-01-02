@@ -15,7 +15,17 @@ enum class NodeType_
 	NodeType_Clip,
 	NodeType_LinearBlend,
 	NodeType_LinearBlendSync,
+	NodeType_Transition,
 	NodeType_Ragdoll
+};
+
+enum class TransitionType_
+{
+	TransitionType_Undefined = -1,
+	TransitionType_Frozen,
+	TransitionType_Frozen_Sync,
+	TransitionType_Smooth,
+	TransitionType_Smooth_Sync
 };
 
 class BlendNode
@@ -27,7 +37,7 @@ public:
 	void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
 	void AddInput(BlendNode* input);
 	void RemoveInput(BlendNode* input);
-	bool Update(float frameTime, bool& needPhysicsUpdate);
+	virtual bool Update(float frameTime, bool& needPhysicsUpdate);
 	virtual bool ProcessData(float frameTime) = 0;
 	const gef::SkeletonPose& GetPose();
 	const NodeType_& GetType() const { return m_Type; }
@@ -57,6 +67,8 @@ public:
 	float GetPlaybackSpeed();
 	bool IsLooping();
 	const AsdfAnim::Clip* GetClip() const;
+	void SetAnimationTime(float time) { m_AnimationTime = time; }
+	float GetAnimationTime() { return m_AnimationTime; }
 	void ResetAnimationTime();
 
 private:
@@ -82,19 +94,42 @@ class LinearBlendNodeSync : public LinearBlendNode
 {
 public:
 	LinearBlendNodeSync(const gef::SkeletonPose& bindPose);
-	bool ProcessData(float frameTime) final override;
-	bool SetInput(uint32_t slot, BlendNode* input) final override;
+	bool ProcessData(float frameTime) override;
+	bool SetInput(uint32_t slot, BlendNode* input) override;
 	void CalculateClipsMaxMin();
+	void CalculateBlendedSyncPose();
 
-private:
+protected:
 	std::array<float, 2> a_ClipsMaxMin;
 	std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
+};
+
+class TransitionNode : public LinearBlendNodeSync
+{
+public:
+	TransitionNode(const gef::SkeletonPose& bindPose);
+	bool Update(float frameTime, bool& needPhysicsUpdate) final override;
+	bool ProcessData(float frameTime) final override;
+	bool SetInput(uint32_t slot, BlendNode* input) final override;
+	void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
+	const TransitionType_& GetTransitionType() { return m_TransitionType; }
+	void ToggleTransition();
+	bool IsTransitioning() { return m_Transitioning; }
+	void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }
+	float GetTransitionTime() { return m_TransitionTime; }
+	void Reset();
+
+private:
+	TransitionType_ m_TransitionType;
+	bool m_Transitioning;
+	float m_TransitionTime, m_CurrentTime;
 };
 
 class RagdollNode : public BlendNode
 {
 public:
 	RagdollNode(const gef::SkeletonPose& bindPose);
+	bool Update(float frameTime, bool& needPhysicsUpdate) final override;
 	bool ProcessData(float frameTime) final override;
 	void SetRagdoll(Ragdoll* pRagdoll);
 

@@ -10,7 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - Add a transition node and a Button node to support different transition types
 // - BUG: ResetFor does not reset node placement. I.E. the output node is in the same position for all tabs
 // - I had an occurence of spawning a node with a link, can't reproduce
 // - Maybe put a pointer of the sent anim to UINode to avoid an extra parameter? Or ref the pointer in the Draw()

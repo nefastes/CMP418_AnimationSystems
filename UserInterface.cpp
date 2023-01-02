@@ -174,6 +174,75 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
             ed::EndNode();
         };
         break;
+    case NodeType_::NodeType_Transition:
+        node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
+            ed::BeginNode(thisPtr->nodeID);
+            ImGui::Text("Linear Blend Node Synchronised");
+            ImGui::BeginGroup();
+            ed::BeginPin(thisPtr->inputPinIDs[0], ed::PinKind::Input);
+            ImGui::Text("-> In1");
+            ed::EndPin();
+            ed::BeginPin(thisPtr->inputPinIDs[1], ed::PinKind::Input);
+            ImGui::Text("-> In2");
+            ed::EndPin();
+
+            TransitionNode* blendNode = reinterpret_cast<TransitionNode*>(thisPtr->animationNode);
+
+            ImGui::Text("Transition Type:");
+            ImGui::SameLine();
+            const TransitionType_& transitionType = blendNode->GetTransitionType();
+            static std::array<std::string, 5> transitionTypeNames = { "None", "Frozen", "Frozen Sync", "Smooth", "Smooth Sync"};
+            if (ImGui::Button(transitionTypeNames[(size_t)transitionType + 1u].c_str()))
+            {
+                ed::Suspend();      // This gets out of the canvas coordinates and we can open the popup on screen coords instead
+                ImGui::OpenPopup("transition");
+                ed::Resume();
+            }
+
+            ImGui::PushItemWidth(200);
+            float transiTime = blendNode->GetTransitionTime();
+            if (ImGui::SliderFloat("Transiton Max Time", &transiTime, 0.f, 4.f))
+                blendNode->SetTransitionTime(transiTime);
+            ImGui::PopItemWidth();
+
+            ImGui::PushItemWidth(100);
+            bool start = blendNode->IsTransitioning();
+            static std::array<std::string, 2> startStopButtonName = { "Start", "Stop" };
+            if (ImGui::Button(startStopButtonName[start].c_str()))
+                blendNode->ToggleTransition();
+
+            if (ImGui::Button("Reset"))
+                blendNode->Reset();
+            ImGui::PopItemWidth();
+
+            ImGui::EndGroup();
+            ImGui::SameLine();
+            ImGui::BeginGroup();
+
+            ed::BeginPin(thisPtr->outputPinID, ed::PinKind::Output);
+            ImGui::Text("Out ->");
+            ed::EndPin();
+            ImGui::EndGroup();
+            ed::EndNode();
+
+            ed::Suspend();
+            if (ImGui::BeginPopup("transition")) {
+                // Note: if it weren't for the child window, we would have to PushItemWidth() here to avoid a crash!
+                ImGui::TextDisabled("Pick One:");
+                ImGui::BeginChild("popup_scroller", ImVec2(200, 100), true, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+                for (size_t j = 0u; j < transitionTypeNames.size(); ++j)
+                {
+                    if (ImGui::Button(transitionTypeNames[j].c_str())) {
+                        blendNode->SetTransitionType((TransitionType_)(j - 1));
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::EndPopup();
+            }
+            ed::Resume();
+        };
+        break;
     case NodeType_::NodeType_Ragdoll:
         node.Draw = [](UINode* const thisPtr, AsdfAnim::Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
@@ -515,6 +584,27 @@ void UI_NodeEditor::OnFrame(float deltaTime)
             // Create a clip node
             BlendTree* blendTree = p_SentAnim->GetBlendTree();
             uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_LinearBlendSync);
+
+            // Create the UI node
+            int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID
+            UINode currentNode = {
+                blendTree->GetNode(nodeID),
+                uniqueId++,
+                {uniqueId++, uniqueId++, uniqueId++, uniqueId++},
+                {false, false, false, false},
+                uniqueId,
+                0
+            };
+            AssignDrawFunctionToUINode(currentNode);
+            ed::SetNodePosition(currentNode.nodeID, ed::ScreenToCanvas(mousePos));
+            v_Nodes.push_back(std::move(currentNode));
+            ImGui::CloseCurrentPopup();
+        }
+        if (ImGui::MenuItem("Transition Node"))
+        {
+            // Create a transition node
+            BlendTree* blendTree = p_SentAnim->GetBlendTree();
+            uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Transition);
 
             // Create the UI node
             int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID

@@ -52,13 +52,6 @@ bool BlendNode::Update(float frameTime, bool& needPhysicsUpdate)
 		if (a_Inputs[i]) success &= a_Inputs[i]->Update(frameTime, needPhysicsUpdate);
 	}
 
-	// Ragdoll nodes will need a physics iteration
-	if (m_Type == NodeType_::NodeType_Ragdoll)
-	{
-		RagdollNode* node = reinterpret_cast<RagdollNode*>(this);
-		needPhysicsUpdate = m_Type == NodeType_::NodeType_Ragdoll && node->IsActive();
-	}
-
 	if (success)	return ProcessData(frameTime);
 	else			return false;
 }
@@ -214,28 +207,7 @@ a_ClipsMaxMin{0.f, 0.f}
 bool LinearBlendNodeSync::ProcessData(float frameTime)
 {
 	// Scale the two input clips to be the same lengh
-	if (a_Inputs[0] && a_Inputs[1])
-	{
-		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
-		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
-
-		// Check if the clips have changed, in which case the maxmin needs to be recalculated
-		const AsdfAnim::ClipType input_type1 = input1->GetClip()->type;
-		const AsdfAnim::ClipType input_type2 = input2->GetClip()->type;
-		if (input_type1 != a_ClipTypes[0] || input_type2 != a_ClipTypes[1])
-		{
-			a_ClipTypes = { input_type1, input_type2 };
-			CalculateClipsMaxMin();
-		}
-
-		const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
-		const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
-
-		input1->SetPlaybackSpeed(1.f + input1_mod);							// With mock values: 1
-		input2->SetPlaybackSpeed(a_ClipsMaxMin[1] + input2_mod);			// 
-
-		m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
-	}
+	if (a_Inputs[0] && a_Inputs[1])			CalculateBlendedSyncPose();
 	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
 	else return false;
@@ -283,12 +255,191 @@ void LinearBlendNodeSync::CalculateClipsMaxMin()
 	a_ClipsMaxMin = { duration1 / duration2, duration2 / duration1 };
 }
 
+void LinearBlendNodeSync::CalculateBlendedSyncPose()
+{
+	ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+
+	// Check if the clips have changed, in which case the maxmin needs to be recalculated
+	const AsdfAnim::ClipType input_type1 = input1->GetClip()->type;
+	const AsdfAnim::ClipType input_type2 = input2->GetClip()->type;
+	if (input_type1 != a_ClipTypes[0] || input_type2 != a_ClipTypes[1])
+	{
+		a_ClipTypes = { input_type1, input_type2 };
+		CalculateClipsMaxMin();
+	}
+
+	const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
+	const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
+
+	input1->SetPlaybackSpeed(1.f + input1_mod);							// With mock values: 1
+	input2->SetPlaybackSpeed(a_ClipsMaxMin[1] + input2_mod);			// 
+
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+}
+
+///
+/// Transition Node
+/// 
+TransitionNode::TransitionNode(const gef::SkeletonPose & bindPose) : LinearBlendNodeSync(bindPose),
+m_TransitionType(TransitionType_::TransitionType_Undefined),
+m_Transitioning(false),
+m_TransitionTime(1.f),
+m_CurrentTime(0.f)
+{
+	m_Type = NodeType_::NodeType_Transition;
+}
+
+bool TransitionNode::Update(float frameTime, bool & needPhysicsUpdate)
+{
+	// Track and update all the parameters before processing its own data to follow a post-order traversal
+	bool success = true;
+
+	if (a_Inputs[0] && a_Inputs[1])
+	{
+		// Needs to transition from input1 to input2 within the transition time set
+		// Time: 0 <= m_CurrentTime <= m_TransitionTime
+		if (m_Transitioning)
+		{
+			m_CurrentTime += frameTime;
+			m_Transitioning = m_CurrentTime < m_TransitionTime;	// Stop if over endTime
+
+			switch (m_TransitionType)
+			{
+			case TransitionType_::TransitionType_Smooth:
+			case TransitionType_::TransitionType_Smooth_Sync:
+				// The smooth transition updates both clips
+				success &= a_Inputs[0]->Update(frameTime, needPhysicsUpdate);
+			case TransitionType_::TransitionType_Frozen:
+			case TransitionType_::TransitionType_Frozen_Sync:
+				success &= a_Inputs[1]->Update(frameTime, needPhysicsUpdate);
+				break;
+			default:
+				// No transition, so just update the first input
+				success &= a_Inputs[0]->Update(frameTime, needPhysicsUpdate);
+				break;
+			}
+		}
+		// If the transition completed
+		else if (m_CurrentTime > 0.f) success &= a_Inputs[1]->Update(frameTime, needPhysicsUpdate);
+		// If the transition has not yet begun
+		else success &= a_Inputs[0]->Update(frameTime, needPhysicsUpdate);
+	}
+	else if (!a_Inputs[0] && a_Inputs[1])	success &= a_Inputs[1]->Update(frameTime, needPhysicsUpdate);
+	else if (a_Inputs[0] && !a_Inputs[1])	success &= a_Inputs[0]->Update(frameTime, needPhysicsUpdate);
+	else return false;
+
+	if (success)	return ProcessData(frameTime);
+	else			return false;
+}
+
+bool TransitionNode::ProcessData(float frameTime)
+{
+	// Check inputs
+	if (a_Inputs[0] && a_Inputs[1])
+	{
+		// Needs to transition from input1 to input2 within the transition time set
+		// Time: 0 <= m_CurrentTime <= m_TransitionTime
+		if (m_Transitioning)
+		{
+			// If the transition should stop, blendVal = 1. Otherwise blendVal = currTime / tranTime
+			m_BlendValue = !m_Transitioning + m_Transitioning * (m_CurrentTime / m_TransitionTime);
+
+			switch (m_TransitionType)
+			{
+			case TransitionType_::TransitionType_Smooth:
+			case TransitionType_::TransitionType_Frozen:
+				m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+				break;
+			case TransitionType_::TransitionType_Smooth_Sync:
+			case TransitionType_::TransitionType_Frozen_Sync:
+				CalculateBlendedSyncPose();
+				break;
+			default:
+				// Undefined
+				m_BlendedPose = a_Inputs[0]->GetPose();
+				break;
+			}
+		}
+		// If the transition completed
+		else if(m_CurrentTime > 0.f) m_BlendedPose = m_BlendedPose = a_Inputs[1]->GetPose();
+		// If the transition has not yet begun
+		else m_BlendedPose = a_Inputs[0]->GetPose();
+	}
+	else if (!a_Inputs[0] && a_Inputs[1])	m_BlendedPose = a_Inputs[1]->GetPose();
+	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
+	else return false;
+
+	return true;
+}
+
+bool TransitionNode::SetInput(uint32_t slot, BlendNode* input)
+{
+	// Refuse any input that is not a clip
+	if (input->GetType() != NodeType_::NodeType_Clip) return false;
+
+	return BlendNode::SetInput(slot, input);
+}
+
+void TransitionNode::ToggleTransition()
+{
+	// If no transition was defined, make it instant
+	if (m_TransitionType == TransitionType_::TransitionType_Undefined)
+	{
+		m_CurrentTime = m_TransitionTime;
+		return;
+	}
+
+	// If the transition is synchronised, align the second input clock to the first one
+	if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+	{
+		ClipNode* clip1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* clip2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		clip2->SetAnimationTime(clip1->GetAnimationTime());
+		a_ClipTypes = { clip1->GetClip()->type, clip2->GetClip()->type };
+		CalculateClipsMaxMin();
+	}
+
+	// Only start a transition if two inputs are available
+	m_Transitioning = !m_Transitioning && a_Inputs[0] && a_Inputs[1];
+}
+
+void TransitionNode::Reset()
+{
+	m_CurrentTime = 0.f;
+
+	// Reset the clip playback speeds if they have been tweaked by a synchronised transition
+	if (a_Inputs[0]) reinterpret_cast<ClipNode*>(a_Inputs[0])->SetPlaybackSpeed(1.f);
+	if (a_Inputs[1]) reinterpret_cast<ClipNode*>(a_Inputs[1])->SetPlaybackSpeed(1.f);
+}
+
 ///
 /// Ragdoll Node
 /// 
 RagdollNode::RagdollNode(const gef::SkeletonPose & bindPose) : BlendNode(bindPose), p_Ragdoll(nullptr), m_Active(true)
 {
 	m_Type = NodeType_::NodeType_Ragdoll;
+}
+
+bool RagdollNode::Update(float frameTime, bool & needPhysicsUpdate)
+{
+	// Track and update all the parameters before processing its own data to follow a post-order traversal
+	bool success = true;
+
+	// TODO: This is dumb cause there is only one input but I'll leave it in case it changes in the future
+	for (uint32_t i = 0u; i < a_Inputs.size(); ++i)
+	{
+		// Recursively call the update of each input node
+		// This will create a post-order traversal on the entire tree
+		// The last nodes of the tree will have no parameter to update
+		if (a_Inputs[i]) success &= a_Inputs[i]->Update(frameTime, needPhysicsUpdate);
+	}
+
+	// Ragdoll nodes will need a physics iteration
+	needPhysicsUpdate = m_Active;
+
+	if (success)	return ProcessData(frameTime);
+	else			return false;
 }
 
 bool RagdollNode::ProcessData(float frameTime)
@@ -361,6 +512,7 @@ uint32_t BlendTree::AddNode(NodeType_ type)
 	case NodeType_::NodeType_Clip:				v_Tree.push_back(new ClipNode(m_BindPose));					break;
 	case NodeType_::NodeType_LinearBlend:		v_Tree.push_back(new LinearBlendNode(m_BindPose));			break;
 	case NodeType_::NodeType_LinearBlendSync:	v_Tree.push_back(new LinearBlendNodeSync(m_BindPose));		break;
+	case NodeType_::NodeType_Transition:		v_Tree.push_back(new TransitionNode(m_BindPose));			break;
 	case NodeType_::NodeType_Ragdoll:			v_Tree.push_back(new RagdollNode(m_BindPose));				break;
 	default:
 		throw std::logic_error("Tried to create a non-existant node!");
