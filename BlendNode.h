@@ -22,7 +22,7 @@ class BlendNode
 {
 public:
 	BlendNode(const gef::SkeletonPose& bindPose);
-	virtual void SetInput(uint32_t slot, BlendNode* input);
+	virtual bool SetInput(uint32_t slot, BlendNode* input);
 	void SetInput(BlendNode* input1, BlendNode* input2);
 	void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
 	void AddInput(BlendNode* input);
@@ -83,7 +83,7 @@ class LinearBlendNodeSync : public LinearBlendNode
 public:
 	LinearBlendNodeSync(const gef::SkeletonPose& bindPose);
 	bool ProcessData(float frameTime) final override;
-	void SetInput(uint32_t slot, BlendNode* input) final override;
+	bool SetInput(uint32_t slot, BlendNode* input) final override;
 	void CalculateClipsMaxMin();
 
 private:

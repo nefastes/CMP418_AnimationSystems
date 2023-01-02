@@ -4,9 +4,10 @@ BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_B
 {
 }
 
-void BlendNode::SetInput(uint32_t slot, BlendNode* input)
+bool BlendNode::SetInput(uint32_t slot, BlendNode* input)
 {
 	a_Inputs[slot] = input;
+	return true;
 }
 
 void BlendNode::SetInput(BlendNode* input1, BlendNode* input2)
@@ -203,7 +204,9 @@ float* LinearBlendNode::GetBlendValue()
 /// Scales the clips durations to be synchronised, ideal for walk <-> run animations
 /// </summary>
 /// <param name="bindPose"></param>
-LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : LinearBlendNode(bindPose)
+LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : LinearBlendNode(bindPose),
+a_ClipTypes{AsdfAnim::ClipType::Clip_Type_Undefined, AsdfAnim::ClipType::Clip_Type_Undefined },
+a_ClipsMaxMin{0.f, 0.f}
 {
 	m_Type = NodeType_::NodeType_LinearBlendSync;
 }
@@ -240,14 +243,18 @@ bool LinearBlendNodeSync::ProcessData(float frameTime)
 	return true;
 }
 
-void LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
+bool LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 {
+	// Refuse any input that is not a clip
+	if (input->GetType() != NodeType_::NodeType_Clip) return false;
+
 	BlendNode::SetInput(slot, input);
 
 	// Whenever an input is added to this node we need to resync the clips
 	for (BlendNode* node : a_Inputs)
 		if (node)
 			reinterpret_cast<ClipNode*>(node)->ResetAnimationTime();
+	reinterpret_cast<ClipNode*>(input)->ResetAnimationTime();
 
 	// When there are two inputs, it means the node can operate
 	// Take advantage to do only-once initialisations
@@ -258,6 +265,9 @@ void LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 		a_ClipTypes = { input1->GetClip()->type, input2->GetClip()->type };
 		CalculateClipsMaxMin();
 	}
+
+	// Input accepted
+	return true;
 }
 
 void LinearBlendNodeSync::CalculateClipsMaxMin()
