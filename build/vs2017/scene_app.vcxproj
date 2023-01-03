@@ -675,6 +675,7 @@
     <ClInclude Include="..\..\Animation2D.h" />
     <ClInclude Include="..\..\Animation3D.h" />
     <ClInclude Include="..\..\AnimationManager.h" />
+    <ClInclude Include="..\..\DragonBoneJsonData.h" />
     <ClInclude Include="..\..\Physics.h" />
     <ClInclude Include="..\..\primitive_builder.h" />
     <ClInclude Include="..\..\ragdoll.h" />

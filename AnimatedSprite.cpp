@@ -16,30 +16,4 @@ namespace gef
 	AnimatedSprite::~AnimatedSprite()
 	{
 	}
-
-	void AnimatedSprite::SetBodyPosition(const gef::Vector2& pos)
-	{
-		m_BodyPosition = pos;
-	}
-
-	const gef::Vector2& AnimatedSprite::GetBodyPosition() const
-	{
-		return m_BodyPosition;
-	}
-	void AnimatedSprite::SetBodyRotation(float rotation)
-	{
-		m_BodyRotation = rotation;
-	}
-	const float& AnimatedSprite::GetBodyRotation() const
-	{
-		return m_BodyRotation;
-	}
-	void AnimatedSprite::SetBodyScale(const gef::Vector2& scale)
-	{
-		m_BodyScale = scale;
-	}
-	const gef::Vector2& AnimatedSprite::GetBodyScale() const
-	{
-		return m_BodyScale;
-	}
 }

@@ -133,7 +133,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
 
             LinearBlendNode* blendNode = reinterpret_cast<LinearBlendNode*>(thisPtr->animationNode);
             ImGui::PushItemWidth(200);
-            ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+            ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValuePtr(), 0.f, 1.f);
             ImGui::PopItemWidth();
 
             ImGui::EndGroup();
@@ -161,7 +161,7 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
 
             LinearBlendNodeSync* blendNode = reinterpret_cast<LinearBlendNodeSync*>(thisPtr->animationNode);
             ImGui::PushItemWidth(200);
-            ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValue(), 0.f, 1.f);
+            ImGui::SliderFloat("Blend Factor", blendNode->GetBlendValuePtr(), 0.f, 1.f);
             ImGui::PopItemWidth();
 
             ImGui::EndGroup();

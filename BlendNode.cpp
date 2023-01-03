@@ -6,22 +6,6 @@ BlendNode::BlendNode(const gef::SkeletonPose& bindPose) : a_Inputs{nullptr}, r_B
 {
 }
 
-bool BlendNode::SetInput(uint32_t slot, BlendNode* input)
-{
-	a_Inputs[slot] = input;
-	return true;
-}
-
-void BlendNode::SetInput(BlendNode* input1, BlendNode* input2)
-{
-	a_Inputs = { input1, input2, nullptr, nullptr };
-}
-
-void BlendNode::SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4)
-{
-	a_Inputs = { input1, input2, input3, input4 };
-}
-
 void BlendNode::AddInput(BlendNode * input)
 {
 	for (auto& item : a_Inputs)
@@ -56,11 +40,6 @@ bool BlendNode::Update(float frameTime, bool& needPhysicsUpdate)
 
 	if (success)	return ProcessData(frameTime);
 	else			return false;
-}
-
-const gef::SkeletonPose& BlendNode::GetPose()
-{
-	return m_BlendedPose;
 }
 
 /// <summary>
@@ -134,36 +113,6 @@ bool ClipNode::ProcessData(float frameTime)
 	return !finished;
 }
 
-void ClipNode::SetPlaybackSpeed(float speed)
-{
-	m_ClipPlaybackSpeed = speed;
-}
-void ClipNode::SetLooping(bool loop)
-{
-	m_ClipLooping = loop;
-}
-void ClipNode::SetClip(const AsdfAnim::Clip* clip)
-{
-	p_Clip = clip;
-}
-float ClipNode::GetPlaybackSpeed()
-{
-	return m_ClipPlaybackSpeed;
-}
-bool ClipNode::IsLooping()
-{
-	return m_ClipLooping;
-}
-const AsdfAnim::Clip* ClipNode::GetClip() const
-{
-	return p_Clip;
-}
-
-void ClipNode::ResetAnimationTime()
-{
-	m_AnimationTime = 0.f;
-}
-
 /// <summary>
 /// Linear Blend
 /// </summary>
@@ -181,17 +130,6 @@ bool LinearBlendNode::ProcessData(float frameTime)
 	else if (a_Inputs[0] && !a_Inputs[1])	m_BlendedPose = a_Inputs[0]->GetPose();
 	else									return false;
 	return true;
-}
-
-void LinearBlendNode::SetBlendValue(float pBlendVal)
-{
-	m_BlendValue = pBlendVal;
-}
-
-// TODO: PTR
-float* LinearBlendNode::GetBlendValue()
-{
-	return &m_BlendValue;
 }
 
 /// <summary>
@@ -465,11 +403,6 @@ bool RagdollNode::ProcessData(float frameTime)
 	return true;
 }
 
-void RagdollNode::SetRagdoll(Ragdoll* pRagdoll)
-{
-	p_Ragdoll = pRagdoll;
-}
-
 /// <summary>
 /// Blend tree
 /// </summary>
@@ -486,12 +419,6 @@ BlendTree::~BlendTree()
 	for (auto& item : v_Tree)
 		delete item, item = nullptr;
 	v_Tree.clear();
-}
-
-const gef::SkeletonPose& BlendTree::GetOutputPose()
-{
-	// Return the pose from the output node
-	return v_Tree.front()->GetPose();
 }
 
 uint32_t BlendTree::AddNode(BlendNode* node)
@@ -545,23 +472,6 @@ BlendNode* BlendTree::GetNode(uint32_t ID)
 void BlendTree::ConnectToRoot(uint32_t inputNodeID)
 {
 	v_Tree[0u]->SetInput(0u, v_Tree[inputNodeID]);
-}
-
-void BlendTree::ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID)
-{
-	// No check on these functions because the parameters should only be optained using the AddNode function
-	// The input slot should be dictated by the GUI
-	v_Tree[receiverNodeID]->SetInput(inputSlot, v_Tree[inputNodeID]);
-}
-
-void BlendTree::ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID)
-{
-	v_Tree[receiverNodeID]->SetInput(v_Tree[inputNodeID1], v_Tree[inputNodeID2]);
-}
-
-void BlendTree::ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID)
-{
-	v_Tree[receiverNodeID]->SetInput(v_Tree[inputNodeID1], v_Tree[inputNodeID2], v_Tree[inputNodeID3], v_Tree[inputNodeID4]);
 }
 
 void BlendTree::Update(float frameTime, bool& needsPhysicsUpdate)

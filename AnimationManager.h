@@ -24,11 +24,11 @@ namespace AsdfAnim
 	public:
 		AnimationManager(gef::Platform& rPlatform);
 		~AnimationManager();
-		void SetBtPhysicsWorld(btDiscreteDynamicsWorld* pbtDynamicWorld);
+		void SetBtPhysicsWorld(btDiscreteDynamicsWorld* pbtDynamicWorld) { p_btDynamicWorld = pbtDynamicWorld; }
 
 		void Update(float frameTime);
-		void Draw2D(gef::SpriteRenderer* pRenderer2D);
-		void Draw3D(gef::Renderer3D* pRenderer3D);
+		void Draw2D(gef::SpriteRenderer* pRenderer2D) const;
+		void Draw3D(gef::Renderer3D* pRenderer3D) const;
 
 		void LoadGef3D(const char* filename);
 		void LoadAllGef3DFromFolder(const char* folderpath, bool recursiveSearch = false);
@@ -39,11 +39,10 @@ namespace AsdfAnim
 		void LoadDragronbone2DJson(const char* filename);
 		void LoadAllDragonbone2DJsonFromFolder(const char* folderpath, bool recursiveSearch = false);
 
-		const std::vector<const std::string*>& GetAvailableFileNames();
-		const std::vector<Animation2D*>& GetAvailable2DDatas();
-		const std::vector<Animation3D*>& GetAvailable3DDatas();
-
-		bool RequirePhysics() const;
+		const std::vector<const std::string*>& GetAvailableFileNames() const { return v_AvailableFiles; } // This function should be called by the GUI to list all the available animators
+		const std::vector<Animation2D*>& GetAvailable2DDatas() const { return v_LoadedAnimations2D; }
+		const std::vector<Animation3D*>& GetAvailable3DDatas() const { return v_LoadedAnimations3D; }
+		bool RequirePhysics() const { return m_NeedsPhysicsUpdate; }
 
 	private:
 		gef::Platform& r_Platform;

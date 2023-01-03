@@ -5,17 +5,13 @@
 #include <vector>
 #include <array>
 #include "ragdoll.h"
-
-// Values from average speeds in m/s since 1u = 1m
-#define PHYSICS_WALK_SPEED 1.38889f
-#define PHYSICS_RUN_SPEED 3.57631944444f
+#include "graphics/skinned_mesh_instance.h"
 
 namespace gef
 {
 	class Platform;
 	class Scene;
 	class Mesh;
-	class SkinnedMeshInstance;
 	class Animation;
 	class Renderer3D;
 	class Matrix44;
@@ -37,19 +33,15 @@ namespace AsdfAnim
 		void Draw(gef::Renderer3D* renderer) const;
 
 		const std::vector<std::string>& AvailableClips() const { return v_AvailableClips; }
-		const Clip* GetClip(const size_t animIndex) const;
-		const gef::Matrix44& GetMeshTransform();
-		void SetMeshTransform(const gef::Matrix44& transform);
-		const std::string& GetFileName();
-
-		void SetBodyVelocity(float v) { m_BodyVelociy = v; }
-		const float& GetBodyVelocity() { return m_BodyVelociy; }
-
-		BlendTree* GetBlendTree() const { return p_BlendTree; }
+		const Clip* GetClip(const size_t animIndex) const { return &v_Clips[animIndex]; }
+		const gef::Matrix44& GetMeshTransform() const { return p_MeshInstance->transform(); }
+		void SetMeshTransform(const gef::Matrix44& transform) { p_MeshInstance->set_transform(transform); }
+		const std::string& GetFileName() const { return s_Filename; }
 
 		Ragdoll* GetRagdoll() const { return p_Ragdoll; }
-
 		bool RequirePhysics() const { return m_NeedsPhysicsUpdate; }
+
+		BlendTree* GetBlendTree() const { return p_BlendTree; }
 
 	private:
 		gef::Scene* p_Scene;
@@ -60,12 +52,13 @@ namespace AsdfAnim
 		Clip* p_CurrentAnimation;
 		std::string s_Filename;
 
-		float m_BodyVelociy;
-
-		BlendTree* p_BlendTree;
-
+		// Physics
 		Ragdoll* p_Ragdoll;
 		bool m_NeedsPhysicsUpdate;
+
+		// BlendTrees
+		BlendTree* p_BlendTree;
+
 	};
 
 }

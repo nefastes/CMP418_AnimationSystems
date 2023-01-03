@@ -2,7 +2,6 @@
 #include "system/platform.h"
 #include "graphics/scene.h"
 #include "graphics/mesh.h"
-#include "graphics/skinned_mesh_instance.h"
 #include "graphics/renderer_3d.h"
 #include "animation/skeleton.h"
 #include "animation/animation.h"
@@ -12,7 +11,7 @@
 #include <Windows.h>
 
 AsdfAnim::Animation3D::Animation3D() : p_Scene(nullptr), p_Mesh(nullptr), p_MeshInstance(nullptr), p_CurrentAnimation(nullptr),
-m_BodyVelociy(0.f), p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
+p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
 {
 }
 
@@ -99,16 +98,19 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         }
     }
 
-    // TODO: Handle the case of no animation loaded, should only display 3d mesh and maybe a message box saying no animation was loaded
-    // Initialise the first clip player on the first loaded animation
-    p_CurrentAnimation = &v_Clips.front();
+    // If one or multiple animation is present, assign the first loaded animation as the default one
+    if (v_Clips.size())
+    {
+        // Initialise the first clip player on the first loaded animation
+        p_CurrentAnimation = &v_Clips.front();
 
-    // Init blend tree
-    p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
-    uint32_t idleNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
-    ClipNode* idleNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(idleNodeID));
-    idleNode->SetClip(p_CurrentAnimation);
-    p_BlendTree->ConnectToRoot(idleNodeID);
+        // Init blend tree
+        p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
+        uint32_t idleNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
+        ClipNode* idleNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(idleNodeID));
+        idleNode->SetClip(p_CurrentAnimation);
+        p_BlendTree->ConnectToRoot(idleNodeID);
+    }
 }
 
 void AsdfAnim::Animation3D::LoadRagdoll(btDiscreteDynamicsWorld* pbtDynamicWorld, const char* filepath)
@@ -127,24 +129,4 @@ void AsdfAnim::Animation3D::Update(float frameTime)
 void AsdfAnim::Animation3D::Draw(gef::Renderer3D* renderer) const
 {
     renderer->DrawSkinnedMesh(*p_MeshInstance, p_MeshInstance->bone_matrices());
-}
-
-const AsdfAnim::Clip * AsdfAnim::Animation3D::GetClip(const size_t animIndex) const
-{
-    return &v_Clips[animIndex];
-}
-
-const gef::Matrix44& AsdfAnim::Animation3D::GetMeshTransform()
-{
-    return p_MeshInstance->transform();
-}
-
-void AsdfAnim::Animation3D::SetMeshTransform(const gef::Matrix44& transform)
-{
-    p_MeshInstance->set_transform(transform);
-}
-
-const std::string& AsdfAnim::Animation3D::GetFileName()
-{
-    return s_Filename;
 }

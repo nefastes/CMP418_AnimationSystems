@@ -10,7 +10,6 @@
 namespace ed = ax::NodeEditor;
 
 /////TODO
-// - Put BlenNodes inside namespace AsdfAnim::
 // - Code cleanup, remove unecessary things and move one-line functions to headers
 // 
 // IF THERE IS TIME LEFTOVER

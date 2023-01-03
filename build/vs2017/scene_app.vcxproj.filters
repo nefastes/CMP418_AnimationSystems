@@ -1505,6 +1505,9 @@
     <ClInclude Include="..\..\Physics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\DragonBoneJsonData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\imgui\node-editor\config.h.in">

@@ -119,16 +119,6 @@ void AsdfAnim::Animation2D::Render(gef::SpriteRenderer* renderer2d)
 	}
 }
 
-const char* AsdfAnim::Animation2D::GetSpriteSheetName()
-{
-	return m_SpriteSheet.path.c_str();
-}
-
-const unsigned& AsdfAnim::Animation2D::GetCurrentFrame()
-{
-	return m_CurrentFrame;
-}
-
 const char* AsdfAnim::Animation2D::GetCurrentFrameName()
 {
 	if (m_Skeleton.armature.size() == 1 && m_Skeleton.armature.back().type == "Sheet")
@@ -204,21 +194,6 @@ void AsdfAnim::Animation2D::CalculateTransformData()
 	}
 }
 
-const std::vector<AsdfAnim::TransformData>& AsdfAnim::Animation2D::GetAllTransforms()
-{
-	return m_TransformData;
-}
-
-const AsdfAnim::TransformData& AsdfAnim::Animation2D::GetTransformData(unsigned index)
-{
-	return m_TransformData[index];
-}
-
-bool AsdfAnim::Animation2D::IsRigged()
-{
-	return m_IsRigged;
-}
-
 void AsdfAnim::Animation2D::PreviousFrame()
 {
 	--m_CurrentFrame;
@@ -233,11 +208,6 @@ void AsdfAnim::Animation2D::NextFrame()
 	if (m_CurrentFrame >= m_Skeleton.armature[m_CurrentArmature].animation[m_CurrentAnimation].duration) m_CurrentFrame = 0u;
 	//UpdateSprite(sprite, spriteTargetPosition);
 	CalculateTransformData();
-}
-
-void AsdfAnim::Animation2D::TogglePlay()
-{
-	m_Playing = !m_Playing;
 }
 
 void AsdfAnim::Animation2D::SelectAnimation(const std::string& Animation2DName)
@@ -260,24 +230,9 @@ std::vector<std::string> AsdfAnim::Animation2D::AvailableClips()
 {
 	std::vector<std::string> result;
 	result.reserve(m_Skeleton.armature[m_CurrentArmature].animation.size());
-	for (auto anim : m_Skeleton.armature[m_CurrentArmature].animation)
+	for (auto& anim : m_Skeleton.armature[m_CurrentArmature].animation)
 		result.push_back(anim.first);
 	return result;
-}
-
-void AsdfAnim::Animation2D::SetSprite(gef::AnimatedSprite* s)
-{
-	p_Sprite = s;
-}
-
-gef::AnimatedSprite* AsdfAnim::Animation2D::GetSprite()
-{
-	return p_Sprite;
-}
-
-const std::string& AsdfAnim::Animation2D::GetFileName()
-{
-	return m_Skeleton.name;
 }
 
 void AsdfAnim::Animation2D::ReadSpriteSheetFromJSON(const rapidjson::Document& doc)
@@ -286,7 +241,7 @@ void AsdfAnim::Animation2D::ReadSpriteSheetFromJSON(const rapidjson::Document& d
 	if (doc.HasMember("name"))		m_SpriteSheet.name = doc["name"].GetString();
 	if (doc.HasMember("imagePath"))	m_SpriteSheet.path = doc["imagePath"].GetString();
 	if (doc.HasMember("width"))		m_SpriteSheet.width = doc["width"].GetFloat();
-	if (doc.HasMember("height"))		m_SpriteSheet.height = doc["height"].GetFloat();
+	if (doc.HasMember("height"))	m_SpriteSheet.height = doc["height"].GetFloat();
 
 	// Load the subtextures
 	const rapidjson::Value& subtextures = doc["SubTexture"];

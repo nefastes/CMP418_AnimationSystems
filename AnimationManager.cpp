@@ -16,11 +16,6 @@ AsdfAnim::AnimationManager::~AnimationManager()
 {
 }
 
-void AsdfAnim::AnimationManager::SetBtPhysicsWorld(btDiscreteDynamicsWorld* pbtDynamicWorld)
-{
-    p_btDynamicWorld = pbtDynamicWorld;
-}
-
 void AsdfAnim::AnimationManager::Update(float frameTime)
 {
     for (auto anim : v_LoadedAnimations2D)
@@ -36,14 +31,14 @@ void AsdfAnim::AnimationManager::Update(float frameTime)
 }
 
 
-void AsdfAnim::AnimationManager::Draw2D(gef::SpriteRenderer* pRenderer2D)
+void AsdfAnim::AnimationManager::Draw2D(gef::SpriteRenderer* pRenderer2D) const
 {
     for (auto anim : v_LoadedAnimations2D)
         if (anim->IsActive())
             anim->Render(pRenderer2D);
 }
 
-void AsdfAnim::AnimationManager::Draw3D(gef::Renderer3D* pRenderer3D)
+void AsdfAnim::AnimationManager::Draw3D(gef::Renderer3D* pRenderer3D) const
 {
     for (auto anim : v_LoadedAnimations3D)
         if (anim->IsActive())
@@ -123,25 +118,4 @@ void AsdfAnim::AnimationManager::LoadAllDragonbone2DJsonFromFolder(const char* f
             LoadDragronbone2DJson(entryPath.substr(0u, commonNameMarker).c_str());
         }
     }
-}
-
-const std::vector<const std::string*>& AsdfAnim::AnimationManager::GetAvailableFileNames()
-{
-    // This function should be called by the GUI to list all the available animators
-    return v_AvailableFiles;
-}
-
-const std::vector<AsdfAnim::Animation2D*>& AsdfAnim::AnimationManager::GetAvailable2DDatas()
-{
-    return v_LoadedAnimations2D;
-}
-
-const std::vector<AsdfAnim::Animation3D*>& AsdfAnim::AnimationManager::GetAvailable3DDatas()
-{
-    return v_LoadedAnimations3D;
-}
-
-bool AsdfAnim::AnimationManager::RequirePhysics() const
-{
-    return m_NeedsPhysicsUpdate;
 }

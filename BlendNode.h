@@ -35,14 +35,17 @@ namespace AsdfAnim
 	{
 	public:
 		BlendNode(const gef::SkeletonPose& bindPose);
-		virtual bool SetInput(uint32_t slot, BlendNode* input);
-		void SetInput(BlendNode* input1, BlendNode* input2);
-		void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4);
+
+		virtual bool SetInput(uint32_t slot, BlendNode* input) { a_Inputs[slot] = input; return true; }
+		void SetInput(BlendNode* input1, BlendNode* input2) { a_Inputs = { input1, input2, nullptr, nullptr }; }
+		void SetInput(BlendNode* input1, BlendNode* input2, BlendNode* input3, BlendNode* input4) { a_Inputs = { input1, input2, input3, input4 }; }
 		void AddInput(BlendNode* input);
 		void RemoveInput(BlendNode* input);
+
 		virtual bool Update(float frameTime, bool& needPhysicsUpdate);
 		virtual bool ProcessData(float frameTime) = 0;
-		const gef::SkeletonPose& GetPose();
+
+		const gef::SkeletonPose& GetPose() const { return m_BlendedPose; }
 		const NodeType_& GetType() const { return m_Type; }
 		const std::array<BlendNode*, 4>& GetInputs() const { return a_Inputs; }
 
@@ -64,15 +67,18 @@ namespace AsdfAnim
 	public:
 		ClipNode(const gef::SkeletonPose& bindPose);
 		bool ProcessData(float frameTime) final override;
-		void SetPlaybackSpeed(float speed);
-		void SetLooping(bool loop);
-		void SetClip(const AsdfAnim::Clip* clip);
-		float GetPlaybackSpeed();
-		bool IsLooping();
-		const AsdfAnim::Clip* GetClip() const;
+
+		void SetPlaybackSpeed(float speed) { m_ClipPlaybackSpeed = speed; }
+		void SetLooping(bool loop) { m_ClipLooping = loop; }
+		void SetClip(const AsdfAnim::Clip* clip) { p_Clip = clip; }
 		void SetAnimationTime(float time) { m_AnimationTime = time; }
+
+		float GetPlaybackSpeed() const { return m_ClipPlaybackSpeed; }
+		bool IsLooping() const { return m_ClipLooping; }
+		const AsdfAnim::Clip* GetClip() const { return p_Clip; }
 		float GetAnimationTime() { return m_AnimationTime; }
-		void ResetAnimationTime();
+
+		void ResetAnimationTime() { m_AnimationTime = 0.f; }
 
 	private:
 		float m_AnimationTime;
@@ -86,8 +92,9 @@ namespace AsdfAnim
 	public:
 		LinearBlendNode(const gef::SkeletonPose& bindPose);
 		bool ProcessData(float frameTime) override;
-		void SetBlendValue(float pBlendVal);
-		float* GetBlendValue();
+
+		void SetBlendValue(float pBlendVal) { m_BlendValue = pBlendVal; }
+		float* GetBlendValuePtr() { return &m_BlendValue; }
 
 	protected:
 		float m_BlendValue;
@@ -114,13 +121,15 @@ namespace AsdfAnim
 		bool Update(float frameTime, bool& needPhysicsUpdate) final override;
 		bool ProcessData(float frameTime) final override;
 		bool SetInput(uint32_t slot, BlendNode* input) final override;
-		void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
-		const TransitionType_& GetTransitionType() { return m_TransitionType; }
+
 		void StartTransition();
-		bool IsTransitioning() { return m_Transitioning; }
-		void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }
-		float GetTransitionTime() { return m_TransitionTime; }
 		void Reset();
+
+		void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
+		const TransitionType_& GetTransitionType() const { return m_TransitionType; }
+		bool IsTransitioning() const { return m_Transitioning; }
+		void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }
+		float GetTransitionTime() const { return m_TransitionTime; }
 
 	private:
 		TransitionType_ m_TransitionType;
@@ -134,11 +143,11 @@ namespace AsdfAnim
 		RagdollNode(const gef::SkeletonPose& bindPose);
 		bool Update(float frameTime, bool& needPhysicsUpdate) final override;
 		bool ProcessData(float frameTime) final override;
-		void SetRagdoll(Ragdoll* pRagdoll);
 
-		bool IsActive() { return m_Active; }
 		void SetActive(bool a) { m_Active = a; }
+		bool IsActive() const { return m_Active; }
 
+		void SetRagdoll(Ragdoll* pRagdoll) { p_Ragdoll = pRagdoll; }
 		bool IsRagdollValid() { return p_Ragdoll != nullptr; }
 
 	private:
@@ -151,16 +160,17 @@ namespace AsdfAnim
 	public:
 		BlendTree(const gef::SkeletonPose& bindPose);
 		~BlendTree();
-		const gef::SkeletonPose& GetOutputPose();
+
+		// Return the pose from the output node
+		const gef::SkeletonPose& GetOutputPose() const { return v_Tree.front()->GetPose(); }
 
 		uint32_t AddNode(BlendNode* node);
 		uint32_t AddNode(NodeType_ type);
 		void RemoveAndFreeNode(BlendNode* node);
+
 		BlendNode* GetNode(uint32_t ID);
 		void ConnectToRoot(uint32_t inputNodeID);
-		void ConnectNode(uint32_t inputNodeID, uint32_t inputSlot, uint32_t receiverNodeID);
-		void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t receiverNodeID);
-		void ConnectNodes(uint32_t inputNodeID1, uint32_t inputNodeID2, uint32_t inputNodeID3, uint32_t inputNodeID4, uint32_t receiverNodeID);
+		// Connecting nodes is done on each particular node. See UserInterface.cpp
 
 		void Update(float frameTime, bool& needsPhysicsUpdate);
 
