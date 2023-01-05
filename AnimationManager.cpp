@@ -82,14 +82,6 @@ void AsdfAnim::AnimationManager::LoadAllGef3DFromFolder(const char* folderpath, 
     }
 }
 
-void AsdfAnim::AnimationManager::LoadDragronbone2D(const char* filename)
-{
-}
-
-void AsdfAnim::AnimationManager::LoadAllDragonbone2DFromFolder(const char* folderpath, bool recursiveSearch)
-{
-}
-
 void AsdfAnim::AnimationManager::LoadDragronbone2DJson(const char* filename)
 {
     Animation2D* animation = Animation2D::CreateFromJSON(r_Platform, filename);

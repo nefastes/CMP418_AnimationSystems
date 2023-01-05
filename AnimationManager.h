@@ -33,9 +33,6 @@ namespace AsdfAnim
 		void LoadGef3D(const char* filename);
 		void LoadAllGef3DFromFolder(const char* folderpath, bool recursiveSearch = false);
 
-		void LoadDragronbone2D(const char* filename);
-		void LoadAllDragonbone2DFromFolder(const char* folderpath, bool recursiveSearch = false);
-
 		void LoadDragronbone2DJson(const char* filename);
 		void LoadAllDragonbone2DJsonFromFolder(const char* folderpath, bool recursiveSearch = false);
 
