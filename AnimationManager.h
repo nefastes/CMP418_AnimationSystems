@@ -45,7 +45,7 @@ namespace AsdfAnim
 		bool RequirePhysics() const { return m_NeedsPhysicsUpdate; }
 
 	private:
-		gef::Platform& r_Platform;
+		gef::Platform&							r_Platform;
 		std::vector<Animation2D*>				v_LoadedAnimations2D;
 		std::vector<Animation3D*>				v_LoadedAnimations3D;
 		std::vector<const std::string*>			v_AvailableFiles;		// Storing the name as a string so it can be listed in the gui

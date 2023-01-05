@@ -77,12 +77,11 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
             //Determine the type of this clip if possible
             ClipType clipType = ClipType::Clip_Type_Undefined;
             std::string name;
+            static uint32_t id = 0u;
             //Brut force, very bad
             if(animationFile.string().find("idle", s_Filename.size() + 1) != std::string::npos)         {   clipType = ClipType::Clip_Type_Idle;    name = "idle";     }
             else if(animationFile.string().find("walking", s_Filename.size() + 1) != std::string::npos) {   clipType = ClipType::Clip_Type_Walk;    name = "walking";  }
-            else if(animationFile.string().find("walk", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Walk;    name = "walk";     }
             else if(animationFile.string().find("running", s_Filename.size() + 1) != std::string::npos) {   clipType = ClipType::Clip_Type_Run;     name = "running";  }
-            else if(animationFile.string().find("run", s_Filename.size() + 1) != std::string::npos)     {   clipType = ClipType::Clip_Type_Run;     name = "run";      }
             else if(animationFile.string().find("jump", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Jump;    name = "jump";     }
             else if(animationFile.string().find("fall", s_Filename.size() + 1) != std::string::npos)    {   clipType = ClipType::Clip_Type_Fall;    name = "fall";     }
 
@@ -90,7 +89,8 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
             Clip clip{
                 new gef::Animation(std::move(*animIterator.second)),
                 clipType,
-                name
+                name,
+                id++
             };
             v_Clips.push_back(std::move(clip));
             //v_AvailableAnimations.push_back(tempScene.string_id_table.table().at(animIterator.first));    // This won't work cause the gef loader only saves one animation

@@ -138,7 +138,7 @@ bool LinearBlendNode::ProcessData(float frameTime)
 /// </summary>
 /// <param name="bindPose"></param>
 LinearBlendNodeSync::LinearBlendNodeSync(const gef::SkeletonPose& bindPose) : LinearBlendNode(bindPose),
-a_ClipTypes{AsdfAnim::ClipType::Clip_Type_Undefined, AsdfAnim::ClipType::Clip_Type_Undefined },
+a_ClipIDs{ UINT32_MAX, UINT32_MAX },
 a_ClipsMaxMin{0.f, 0.f}
 {
 	m_Type = NodeType_::NodeType_LinearBlendSync;
@@ -162,19 +162,15 @@ bool LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 
 	BlendNode::SetInput(slot, input);
 
-	// Whenever an input is added to this node we need to resync the clips
-	for (BlendNode* node : a_Inputs)
-		if (node)
-			reinterpret_cast<ClipNode*>(node)->ResetAnimationTime();
-	reinterpret_cast<ClipNode*>(input)->ResetAnimationTime();
-
 	// When there are two inputs, it means the node can operate
 	// Take advantage to do only-once initialisations
 	if (a_Inputs[0] && a_Inputs[1])
 	{
-		const ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
-		const ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
-		a_ClipTypes = { input1->GetClip()->type, input2->GetClip()->type };
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		input1->ResetAnimationTime();
+		input2->ResetAnimationTime();
+		a_ClipIDs = { input1->GetClip()->id, input2->GetClip()->id };
 		CalculateClipsMaxMin();
 	}
 
@@ -201,11 +197,14 @@ void LinearBlendNodeSync::CalculateBlendedSyncPose()
 	ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 
 	// Check if the clips have changed, in which case the maxmin needs to be recalculated
-	const AsdfAnim::ClipType input_type1 = input1->GetClip()->type;
-	const AsdfAnim::ClipType input_type2 = input2->GetClip()->type;
-	if (input_type1 != a_ClipTypes[0] || input_type2 != a_ClipTypes[1])
+	// The clips animation times also need to be resynchronised
+	const uint32_t inputID1 = input1->GetClip()->id;
+	const uint32_t inputID2 = input2->GetClip()->id;
+	if (inputID1 != a_ClipIDs[0] || inputID2 != a_ClipIDs[1])
 	{
-		a_ClipTypes = { input_type1, input_type2 };
+		a_ClipIDs = { inputID1, inputID2 };
+		input1->ResetAnimationTime();
+		input2->ResetAnimationTime();
 		CalculateClipsMaxMin();
 	}
 
@@ -338,7 +337,7 @@ void TransitionNode::StartTransition()
 		ClipNode* clip1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 		ClipNode* clip2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
 		clip2->SetAnimationTime(clip1->GetAnimationTime());
-		a_ClipTypes = { clip1->GetClip()->type, clip2->GetClip()->type };
+		a_ClipIDs = { clip1->GetClip()->id, clip2->GetClip()->id };
 		CalculateClipsMaxMin();
 	}
 

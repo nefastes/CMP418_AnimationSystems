@@ -32,6 +32,7 @@ namespace AsdfAnim
 		gef::Animation* clip;
 		ClipType type;
 		std::string name;
+		uint32_t id;
 	};
 
 	class Animation

@@ -111,7 +111,7 @@ namespace AsdfAnim
 
 	protected:
 		std::array<float, 2> a_ClipsMaxMin;
-		std::array<AsdfAnim::ClipType, 2> a_ClipTypes;
+		std::array<uint32_t, 2> a_ClipIDs;
 	};
 
 	class TransitionNode : public LinearBlendNodeSync
