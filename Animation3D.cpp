@@ -17,6 +17,9 @@ p_BlendTree(nullptr), p_Ragdoll(nullptr), m_NeedsPhysicsUpdate(false)
 
 AsdfAnim::Animation3D::~Animation3D()
 {
+    if (p_Scene)        delete p_Scene, p_Scene = nullptr;
+    if (p_Mesh)         delete p_Mesh, p_Mesh = nullptr;
+    if (p_MeshInstance) delete p_MeshInstance, p_MeshInstance = nullptr;
     if (p_BlendTree)    delete p_BlendTree, p_BlendTree = nullptr;
     if (p_Ragdoll)      delete p_Ragdoll, p_Ragdoll = nullptr;
 }

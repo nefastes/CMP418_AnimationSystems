@@ -9,11 +9,7 @@ AsdfAnim::Animation2D::Animation2D() : m_Playing(true), m_IsRigged(false), m_Clo
 
 AsdfAnim::Animation2D::~Animation2D()
 {
-	if (p_Sprite)
-	{
-		delete p_Sprite;
-		p_Sprite = nullptr;
-	}
+	if (p_Sprite) delete p_Sprite, p_Sprite = nullptr;
 }
 
 AsdfAnim::Animation2D* AsdfAnim::Animation2D::CreateFromJSON(gef::Platform& platform, const char* commonFilename)
@@ -108,7 +104,6 @@ void AsdfAnim::Animation2D::Render(gef::SpriteRenderer* renderer2d)
 	}
 	else
 	{
-		
 		const AsdfAnim::TransformData& data = m_TransformData[m_CurrentFrame];
 		p_Sprite->set_width(data.spriteWidth);
 		p_Sprite->set_height(data.spriteHeight);
@@ -158,7 +153,6 @@ void AsdfAnim::Animation2D::CalculateTransformData()
 	}
 	else
 	{
-		// TODO: Replace hard-coded scale and stuff appropriately
 		gef::Matrix33 temp, riggedTransform = temp = gef::Matrix33::kIdentity;
 		riggedTransform.Scale(spriteBodyScale);
 		temp.Rotate(DEG_TO_RAD(spriteBodyRotation));
@@ -529,7 +523,7 @@ const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::str
 				const size_t next = i == translateArraySize - 1 ? 0u : i + 1;
 				const auto& currentItem = currentAnim.bone.at(bone->name).translateFrame[i];
 				const auto& nextItem = currentAnim.bone.at(bone->name).translateFrame[next];
-				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;	// TODO: Load as floats
+				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				if (m_Clock > currentStartTime && m_Clock < nextStartTime)
 				{
@@ -546,7 +540,7 @@ const gef::Matrix33 AsdfAnim::Animation2D::BuildRigWorldTransform(const std::str
 				const size_t next = i == rotateArraySize - 1 ? 0u : i + 1;
 				const auto& currentItem = currentAnim.bone.at(bone->name).rotateFrame[i];
 				const auto& nextItem = currentAnim.bone.at(bone->name).rotateFrame[next];
-				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;	// TODO: Load as floats
+				const float& currentStartTime = currentItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				const float& nextStartTime = nextItem.startTime * 1.f / m_Skeleton.armature[m_CurrentArmature].frameRate;
 				if (m_Clock > currentStartTime && m_Clock < nextStartTime)
 				{

@@ -14,15 +14,19 @@ AsdfAnim::AnimationManager::AnimationManager(gef::Platform& platform) : r_Platfo
 
 AsdfAnim::AnimationManager::~AnimationManager()
 {
+    for (AsdfAnim::Animation2D*& anim : v_LoadedAnimations2D)
+        if (anim) delete anim, anim = nullptr;
+    for (AsdfAnim::Animation3D*& anim : v_LoadedAnimations3D)
+        if (anim) delete anim, anim = nullptr;
 }
 
 void AsdfAnim::AnimationManager::Update(float frameTime)
 {
-    for (auto anim : v_LoadedAnimations2D)
+    for (auto& anim : v_LoadedAnimations2D)
         if(anim->IsActive())
             anim->Update(frameTime);
     m_NeedsPhysicsUpdate = false;   // Reset in the event that all animations do not require physics anymore
-    for (auto anim : v_LoadedAnimations3D)
+    for (auto& anim : v_LoadedAnimations3D)
         if (anim->IsActive())
         {
             anim->Update(frameTime);
@@ -33,14 +37,14 @@ void AsdfAnim::AnimationManager::Update(float frameTime)
 
 void AsdfAnim::AnimationManager::Draw2D(gef::SpriteRenderer* pRenderer2D) const
 {
-    for (auto anim : v_LoadedAnimations2D)
+    for (auto& anim : v_LoadedAnimations2D)
         if (anim->IsActive())
             anim->Render(pRenderer2D);
 }
 
 void AsdfAnim::AnimationManager::Draw3D(gef::Renderer3D* pRenderer3D) const
 {
-    for (auto anim : v_LoadedAnimations3D)
+    for (auto& anim : v_LoadedAnimations3D)
         if (anim->IsActive())
             anim->Draw(pRenderer3D);
 }

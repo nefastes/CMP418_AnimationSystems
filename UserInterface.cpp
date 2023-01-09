@@ -306,6 +306,7 @@ void UI_NodeEditor::OnStop()
     for(std::pair<const std::string, ed::EditorContext*>& context : map_Contexts)
         ed::DestroyEditor(context.second);
     p_Context = nullptr;
+    p_SentAnim = nullptr;
 }
 
 void UI_NodeEditor::ResetFor(Animation3D* anim)
