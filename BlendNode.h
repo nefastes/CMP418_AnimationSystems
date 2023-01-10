@@ -78,7 +78,7 @@ namespace AsdfAnim
 		const AsdfAnim::Clip* GetClip() const { return p_Clip; }
 		float GetAnimationTime() { return m_AnimationTime; }
 
-		void ResetAnimationTime() { m_AnimationTime = 0.f; }
+		void Reset() { m_AnimationTime = 0.f; m_ClipPlaybackSpeed = 1.f; m_ClipLooping = true; }
 
 	private:
 		float m_AnimationTime;

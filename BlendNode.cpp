@@ -168,8 +168,8 @@ bool LinearBlendNodeSync::SetInput(uint32_t slot, BlendNode* input)
 	{
 		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
-		input1->ResetAnimationTime();
-		input2->ResetAnimationTime();
+		input1->Reset();
+		input2->Reset();
 		a_ClipIDs = { input1->GetClip()->id, input2->GetClip()->id };
 		CalculateClipsMaxMin();
 	}
@@ -203,8 +203,8 @@ void LinearBlendNodeSync::CalculateBlendedSyncPose()
 	if (inputID1 != a_ClipIDs[0] || inputID2 != a_ClipIDs[1])
 	{
 		a_ClipIDs = { inputID1, inputID2 };
-		input1->ResetAnimationTime();
-		input2->ResetAnimationTime();
+		input1->Reset();
+		input2->Reset();
 		CalculateClipsMaxMin();
 	}
 
