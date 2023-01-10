@@ -108,6 +108,7 @@ namespace AsdfAnim
 		bool SetInput(uint32_t slot, BlendNode* input) override;
 		void CalculateClipsMaxMin();
 		void CalculateBlendedSyncPose();
+		void AssignNewClipSpeeds(ClipNode* input1, ClipNode* input2);
 
 	protected:
 		std::array<float, 2> a_ClipsMaxMin;
@@ -125,7 +126,7 @@ namespace AsdfAnim
 		void StartTransition();
 		void Reset();
 
-		void SetTransitionType(const TransitionType_& type) { m_TransitionType = type; }
+		void SetTransitionType(const TransitionType_& type);
 		const TransitionType_& GetTransitionType() const { return m_TransitionType; }
 		bool IsTransitioning() const { return m_Transitioning; }
 		void SetTransitionTime(float transitionTime) { m_TransitionTime = transitionTime; }

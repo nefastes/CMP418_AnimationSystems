@@ -208,13 +208,18 @@ void LinearBlendNodeSync::CalculateBlendedSyncPose()
 		CalculateClipsMaxMin();
 	}
 
+	AssignNewClipSpeeds(input1, input2);
+
+	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
+}
+
+inline void AsdfAnim::LinearBlendNodeSync::AssignNewClipSpeeds(ClipNode * input1, ClipNode * input2)
+{
 	const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
 	const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
 
 	input1->SetPlaybackSpeed(1.f + input1_mod);							// With mock values: 1
 	input2->SetPlaybackSpeed(a_ClipsMaxMin[1] + input2_mod);			// 
-
-	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 }
 
 ///
@@ -317,7 +322,25 @@ bool TransitionNode::SetInput(uint32_t slot, BlendNode* input)
 	// Refuse any input that is not a clip
 	if (input->GetType() != NodeType_::NodeType_Clip) return false;
 
-	return BlendNode::SetInput(slot, input);
+	BlendNode::SetInput(slot, input);
+
+	// When there are two inputs, it means the node can operate
+	// Take advantage to do only-once initialisations
+	if (a_Inputs[0] && a_Inputs[1])
+	{
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		input1->Reset();
+		input2->Reset();
+		a_ClipIDs = { input1->GetClip()->id, input2->GetClip()->id };
+		CalculateClipsMaxMin();
+
+		if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+			AssignNewClipSpeeds(input1, input2);
+	}
+
+	// Input accepted
+	return true;
 }
 
 void TransitionNode::StartTransition()
@@ -329,18 +352,6 @@ void TransitionNode::StartTransition()
 		return;
 	}
 
-	Reset();
-
-	// If the transition is synchronised, align the second input clock to the first one
-	if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
-	{
-		ClipNode* clip1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
-		ClipNode* clip2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
-		clip2->SetAnimationTime(clip1->GetAnimationTime());
-		a_ClipIDs = { clip1->GetClip()->id, clip2->GetClip()->id };
-		CalculateClipsMaxMin();
-	}
-
 	// Only start a transition if two inputs are available
 	m_Transitioning = a_Inputs[0] && a_Inputs[1];
 }
@@ -348,10 +359,34 @@ void TransitionNode::StartTransition()
 void TransitionNode::Reset()
 {
 	m_CurrentTime = 0.f;
+	m_BlendValue = 0.f;
+	m_Transitioning = false;
 
 	// Reset the clip playback speeds if they have been tweaked by a synchronised transition
-	if (a_Inputs[0]) reinterpret_cast<ClipNode*>(a_Inputs[0])->SetPlaybackSpeed(1.f);
-	if (a_Inputs[1]) reinterpret_cast<ClipNode*>(a_Inputs[1])->SetPlaybackSpeed(1.f);
+	if (a_Inputs[0] && a_Inputs[1])
+	{
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		input1->Reset();
+		input2->Reset();
+
+		if(m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+			AssignNewClipSpeeds(input1, input2);
+	}
+}
+
+void AsdfAnim::TransitionNode::SetTransitionType(const TransitionType_& type)
+{
+	m_TransitionType = type;
+
+	if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+	{
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		input1->Reset();
+		input2->Reset();
+		AssignNewClipSpeeds(input1, input2);
+	}
 }
 
 ///
