@@ -213,7 +213,7 @@ void LinearBlendNodeSync::CalculateBlendedSyncPose()
 	m_BlendedPose.Linear2PoseBlend(a_Inputs[0]->GetPose(), a_Inputs[1]->GetPose(), m_BlendValue);
 }
 
-inline void AsdfAnim::LinearBlendNodeSync::AssignNewClipSpeeds(ClipNode * input1, ClipNode * input2)
+inline void AsdfAnim::LinearBlendNodeSync::AssignNewClipSpeeds(ClipNode* input1, ClipNode* input2)
 {
 	const float input1_mod = (a_ClipsMaxMin[0] - 1.f) * m_BlendValue;	// With mock values: 1.38 - 1 * 0.5 -> 0.38 * 0.5 -> 38 percent speed, but halfed cause of blend
 	const float input2_mod = (1.f - a_ClipsMaxMin[1]) * m_BlendValue;	// 
@@ -225,7 +225,7 @@ inline void AsdfAnim::LinearBlendNodeSync::AssignNewClipSpeeds(ClipNode * input1
 ///
 /// Transition Node
 /// 
-TransitionNode::TransitionNode(const gef::SkeletonPose & bindPose) : LinearBlendNodeSync(bindPose),
+TransitionNode::TransitionNode(const gef::SkeletonPose& bindPose) : LinearBlendNodeSync(bindPose),
 m_TransitionType(TransitionType_::TransitionType_Undefined),
 m_Transitioning(false),
 m_TransitionTime(1.f),
@@ -234,7 +234,7 @@ m_CurrentTime(0.f)
 	m_Type = NodeType_::NodeType_Transition;
 }
 
-bool TransitionNode::Update(float frameTime, bool & needPhysicsUpdate)
+bool TransitionNode::Update(float frameTime, bool& needPhysicsUpdate)
 {
 	// Track and update all the parameters before processing its own data to follow a post-order traversal
 	bool success = true;
@@ -354,6 +354,13 @@ void TransitionNode::StartTransition()
 
 	// Only start a transition if two inputs are available
 	m_Transitioning = a_Inputs[0] && a_Inputs[1];
+
+	if (m_Transitioning && m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+	{
+		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
+		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
+		input2->SetAnimationTime(a_ClipsMaxMin[1] * input1->GetAnimationTime());
+	}
 }
 
 void TransitionNode::Reset()
@@ -379,7 +386,7 @@ void AsdfAnim::TransitionNode::SetTransitionType(const TransitionType_& type)
 {
 	m_TransitionType = type;
 
-	if (m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
+	if ((m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync) && a_Inputs[0] && a_Inputs[1])
 	{
 		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
 		ClipNode* input2 = reinterpret_cast<ClipNode*>(a_Inputs[1]);
