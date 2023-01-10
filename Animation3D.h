@@ -33,6 +33,7 @@ namespace AsdfAnim
 		void Draw(gef::Renderer3D* renderer) const;
 
 		const std::vector<std::string>& AvailableClips() const { return v_AvailableClips; }
+		const Clip* GetDefaultClip() const;
 		const Clip* GetClip(const size_t animIndex) const { return &v_Clips[animIndex]; }
 		const gef::Matrix44& GetMeshTransform() const { return p_MeshInstance->transform(); }
 		void SetMeshTransform(const gef::Matrix44& transform) { p_MeshInstance->set_transform(transform); }

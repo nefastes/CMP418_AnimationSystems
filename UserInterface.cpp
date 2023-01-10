@@ -64,13 +64,22 @@ void UI_NodeEditor::AssignDrawFunctionToUINode(UINode& node)
         node.Draw = [](UINode* const thisPtr, Animation3D*& sentAnim) -> void {
             ed::BeginNode(thisPtr->nodeID);
             ImGui::Text("Clip Node");
-            ImGui::BeginGroup();
-            ImGui::PushItemWidth(200);
 
             const std::vector<std::string>& availableAnims = sentAnim->AvailableClips();
+            // Check if any clip is available
+            if (availableAnims.empty())
+            {
+                ImGui::NewLine();
+                ImGui::Text("No animation file was found or assigned for this model.");
+                ImGui::Text("Animation is unavailable.");
+                ed::EndNode();
+                return;
+            }
+
             ClipNode* clipNode = reinterpret_cast<ClipNode*>(thisPtr->animationNode);
             const char* clipName = clipNode->GetClip()->name.c_str();
-
+            ImGui::BeginGroup();
+            ImGui::PushItemWidth(200);
             ImGui::Text("Clip:");
             ImGui::SameLine();
             if (ImGui::Button(clipName))
@@ -536,7 +545,7 @@ void UI_NodeEditor::OnFrame(float deltaTime)
             BlendTree* blendTree = p_SentAnim->GetBlendTree();
             uint32_t nodeID = blendTree->AddNode(NodeType_::NodeType_Clip);
             ClipNode* clipNode = reinterpret_cast<ClipNode*>(blendTree->GetNode(nodeID));
-            clipNode->SetClip(p_SentAnim->GetClip(0u));
+            clipNode->SetClip(p_SentAnim->GetDefaultClip());
 
             // Create the UI node
             int uniqueId = v_Nodes.back().outputPinID.Get() + 1;    // The last node has the biggest ID number in its outputPinID

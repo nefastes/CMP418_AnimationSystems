@@ -101,18 +101,21 @@ void AsdfAnim::Animation3D::LoadScene(gef::Platform& platform, const char* filep
         }
     }
 
+    // Init blend tree
+    p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
+
     // If one or multiple animation is present, assign the first loaded animation as the default one
     if (v_Clips.size())
     {
         // Initialise the first clip player on the first loaded animation
         p_CurrentAnimation = &v_Clips.front();
 
-        // Init blend tree
-        p_BlendTree = new BlendTree(p_MeshInstance->bind_pose());
-        uint32_t idleNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
-        ClipNode* idleNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(idleNodeID));
-        idleNode->SetClip(p_CurrentAnimation);
-        p_BlendTree->ConnectToRoot(idleNodeID);
+        // Add a default clip node to the blendTree
+        // This will be the first loaded clip
+        uint32_t defaultNodeID = p_BlendTree->AddNode(NodeType_::NodeType_Clip);
+        ClipNode* defaultNode = reinterpret_cast<ClipNode*>(p_BlendTree->GetNode(defaultNodeID));
+        defaultNode->SetClip(p_CurrentAnimation);
+        p_BlendTree->ConnectToRoot(defaultNodeID);
     }
 }
 
@@ -132,4 +135,11 @@ void AsdfAnim::Animation3D::Update(float frameTime)
 void AsdfAnim::Animation3D::Draw(gef::Renderer3D* renderer) const
 {
     renderer->DrawSkinnedMesh(*p_MeshInstance, p_MeshInstance->bone_matrices());
+}
+
+const AsdfAnim::Clip* AsdfAnim::Animation3D::GetDefaultClip() const
+{
+    if (!v_Clips.empty())
+        return &v_Clips.front();
+    return nullptr;
 }
