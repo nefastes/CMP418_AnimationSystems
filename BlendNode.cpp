@@ -355,6 +355,7 @@ void TransitionNode::StartTransition()
 	// Only start a transition if two inputs are available
 	m_Transitioning = a_Inputs[0] && a_Inputs[1];
 
+	// For sync, the second clip' animation time needs to be reajusted based on where it would be if it had started at the same instant as the first clip
 	if (m_Transitioning && m_TransitionType == TransitionType_::TransitionType_Frozen_Sync || m_TransitionType == TransitionType_::TransitionType_Smooth_Sync)
 	{
 		ClipNode* input1 = reinterpret_cast<ClipNode*>(a_Inputs[0]);
